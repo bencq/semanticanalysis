@@ -2,6 +2,7 @@ package compilers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -268,11 +269,9 @@ public class GramAndSemAnalysis
 	//四元式表
 	ArrayList<TAC> tacList;
 	
-	//变量表
-	ArrayList<Token> variableList;
-	
-	//常量在变量表的下标，map
-	HashMap<String, Integer> constantMap;
+	//变量表, map 快速查找
+	HashMap<String, Token> variableMap;
+
 	
 	//地址下标
 	int nextStat;
@@ -321,8 +320,7 @@ public class GramAndSemAnalysis
 		
 		//数据结构初始化
 		tacList = new ArrayList<>();
-		variableList = new ArrayList<>();
-		constantMap = new HashMap<>();
+		variableMap = new HashMap<>();
 		calcStack = new Stack<>();
 		
 		
@@ -426,8 +424,7 @@ public class GramAndSemAnalysis
 	private Token generateTempVariable()
 	{
 		String content = "T" + String.valueOf(tempVariableInd++);
-		Token temp = new Token(content, LexAnalysis.IDENTIFIER, constantMap.size());
-		constantMap.put(content, constantMap.size());
+		Token temp = new Token(content, LexAnalysis.IDENTIFIER, variableMap.size());
 		return temp;
 	}
 	
@@ -463,14 +460,7 @@ public class GramAndSemAnalysis
 	//判断当前Token是否已有定义
 	private boolean judgeIsDefined()
 	{
-		for(Token token : variableList)
-		{
-			if(token.symbol.seqNum == gramHelper.getCurToken().symbol.seqNum)
-			{
-				return true;
-			}
-		}
-		return false;
+		return variableMap.containsKey(gramHelper.getCurTokenContent());
 	}
 	
 	
@@ -543,9 +533,7 @@ public class GramAndSemAnalysis
 		
 		token_temp.variableType = rec_VariableDefine().variableType; //标识符后续声明, 并保存变量类型
 		
-		constantMap.put(token_temp.symbol.content, variableList.size()); //更新指向的下标
-		
-		variableList.add(token_temp);
+		variableMap.put(token_temp.symbol.content, token_temp);
 		
 		return token_temp;
 		
@@ -615,7 +603,8 @@ public class GramAndSemAnalysis
 			error("undefined identifier " + gramHelper.getCurTokenContent(), gramHelper.getCurToken());
 		}
 		
-		if(variableList.get(constantMap.get(gramHelper.getCurTokenContent())).variableType != VariableType.INTEGER)
+		
+		if(variableMap.get(gramHelper.getCurTokenContent()).variableType != VariableType.INTEGER)
 		{
 			error("expect variable type integer, but " + gramHelper.getCurToken().variableType + " is found", gramHelper.getCurToken());
 		}
@@ -945,8 +934,7 @@ public class GramAndSemAnalysis
 	//获取Token的变量类型
 	private VariableType getCurTokenType()
 	{
-		int ind = constantMap.get(gramHelper.getCurTokenContent());
-		return variableList.get(ind).variableType;
+		return variableMap.get(gramHelper.getCurTokenContent()).variableType;
 	}
 	
 	//产生四元式
