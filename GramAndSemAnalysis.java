@@ -432,7 +432,7 @@ public class GramAndSemAnalysis
 		if(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.singleDelimiter2kindCode.get(','))
 		{
 			gramHelper.getNextToken();
-			token_temp.variableType = typeDefine().variableType;
+			token_temp.variableType = production_variableDefine().variableType;
 		}
 		else if(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.singleDelimiter2kindCode.get(':'))
 		{
@@ -966,7 +966,7 @@ public class GramAndSemAnalysis
 				gramHelper.getNextToken();
 				
 				//<复合语句> 展开
-				production_program();
+				production_complexSentence();
 				
 				//检查结束符号 .
 				if(gramHelper.getCurToken().symbol.kindCode != LexAnalysis.singleDelimiter2kindCode.get('.'))
