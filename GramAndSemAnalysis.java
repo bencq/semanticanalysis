@@ -35,6 +35,7 @@ class ChainState
 		falseChain.addAll(chainState.falseChain);
 	}
 	
+	//真假链交换
 	void swapChain()
 	{
 		ArrayList<Integer> temp = trueChain;
@@ -686,7 +687,7 @@ public class GramAndSemAnalysis
 		chainState_temp = bool_Term();
 		if(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.keyWord2kindCode.get("or"))
 		{
-			Token op = gramHelper.getCurToken();
+			//Token op = gramHelper.getCurToken();
 			gramHelper.getNextToken();
 			ChainState temp_state = bool_Exp();
 			chainState_temp.addTrueChain(temp_state);//or的真链直接保存等待回填
@@ -726,7 +727,7 @@ public class GramAndSemAnalysis
 		
 		if(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.keyWord2kindCode.get("and"))
 		{
-			Token op = gramHelper.getCurToken();
+			//Token op = gramHelper.getCurToken();
 			gramHelper.getNextToken();
 			ChainState temp_state = bool_Term();
 			chainState_temp.addFalseChain(temp_state);//假链直接保存等待回填
@@ -853,7 +854,7 @@ public class GramAndSemAnalysis
 		}
 		else if(curKindCode == LexAnalysis.keyWord2kindCode.get("not"))
 		{
-			Token op = gramHelper.getCurToken();
+			//Token op = gramHelper.getCurToken();
 			gramHelper.getNextToken();
 			chainState_temp = bool_factor();
 			chainState_temp.swapChain();
@@ -1077,7 +1078,7 @@ public class GramAndSemAnalysis
 	}
 	public void printTAC()
 	{
-		compressJump();
+		//compressJump();
 		int i = 0;
 		for (TAC element : tacList)
 		{
