@@ -30,9 +30,16 @@ public class Entrance
 		
 		//分析
 		lexAnalysis.tokenAnalysis(bufferedReader);
+		lexAnalysis.printSymbols();
 		
+		
+		//利用词法分析的结果构造语法和语义分析器
 		GramAndSemAnalysis gramAndSemAnalysis = new GramAndSemAnalysis(lexAnalysis.symbolList, lexAnalysis.constantsAndSymbol2SeqNum);
+		
+		//开始分析
 		gramAndSemAnalysis.parse();
+		
+		//打印四元式
 		gramAndSemAnalysis.printTAC();
 		
 		
