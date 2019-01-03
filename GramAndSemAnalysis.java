@@ -788,11 +788,11 @@ public class GramAndSemAnalysis
 				
 				//推入四元式
 				{
-					TAC tac = new TAC(new Token("j" + op.content), u1, u2, Token.TOKEN_NULL);
+					TAC tac = new TAC(new Token("j" + op.content), u1, u2, new Token("-"));
 					chainState_temp.trueChain.add(pushTac(tac));
 				}
 				{
-					TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, Token.TOKEN_NULL);
+					TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, new Token("-"));
 					chainState_temp.falseChain.add(pushTac(tac));
 				}	
 			}
@@ -827,11 +827,11 @@ public class GramAndSemAnalysis
 					Token u2 = cal_stack.pop();//获取最后的计算结果
 					//这里要翻译a>b的语句
 					{
-						TAC tac = new TAC(new Token("j" + op.content), u1, u2, Token.TOKEN_NULL);
+						TAC tac = new TAC(new Token("j" + op.content), u1, u2, new Token("-"));
 						chainState_temp.trueChain.add(pushTac(tac));						
 					}
 					{
-						TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, Token.TOKEN_NULL);
+						TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, new Token("-"));
 						chainState_temp.falseChain.add(pushTac(tac));
 					}
 				}
@@ -843,11 +843,11 @@ public class GramAndSemAnalysis
 			else if(getCurrUnitType() == VariableType.BOOL)
 			{
 				{
-					TAC tac = new TAC(new Token("jnz"), gramHelper.getCurToken(), Token.TOKEN_NULL, Token.TOKEN_NULL);
+					TAC tac = new TAC(new Token("jnz"), gramHelper.getCurToken(), Token.TOKEN_NULL, new Token("-"));
 					chainState_temp.trueChain.add(pushTac(tac));
 				}
 				{
-					TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, Token.TOKEN_NULL);
+					TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, new Token("-"));
 					chainState_temp.falseChain.add(pushTac(tac));
 				}
 				gramHelper.getNextToken();
@@ -867,14 +867,14 @@ public class GramAndSemAnalysis
 		}
 		else if(curKindCode == LexAnalysis.keyWord2kindCode.get("true"))
 		{
-			TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, Token.TOKEN_NULL);
+			TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, new Token("-"));
 			chainState_temp.trueChain.add(pushTac(tac));
 			cal_stack.push(gramHelper.getCurToken());
 			gramHelper.getNextToken();
 		}
 		else if(curKindCode == LexAnalysis.keyWord2kindCode.get("false"))
 		{
-			TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, Token.TOKEN_NULL);
+			TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, new Token("-"));
 			chainState_temp.falseChain.add(pushTac(tac));
 			cal_stack.push(gramHelper.getCurToken());
 			gramHelper.getNextToken();
