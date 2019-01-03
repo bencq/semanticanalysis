@@ -1,0 +1,447 @@
+package compilers;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Scanner;
+
+public class LexicalAnalyzer
+{
+	// 定义一个字符串数组用来保存保留字
+	private static String[] keyWords = { "and", "array", "begin", "bool", "call", "case", "char", "constant", "dim",
+			"do", "else", "end", "false", "for", "if", "input", "integer", "not", "of", "or", "output", "procedure",
+			"program", "read", "real", "repeat", "set", "stop", "then", "to", "true", "until", "var", "while",
+			"write" };
+
+	private static HashMap<String, Integer> keyWord2kindCode = new HashMap<>();
+
+	private static char[] singleDelimiters = { '+', '-', '*', '/', '=', '<', '>', '(', ')', '[', ']', ':', '.', ';',
+			',', '\'' };
+	private static int[] kindCode_singleDelimiters = { 43, 45, 41, 48, 56, 53, 57, 39, 40, 59, 60, 50, 46, 52, 44,
+			-'\'' };
+	private static HashMap<Character, Integer> singleDelimiter2kindCode = new HashMap<>();
+
+	static
+	{
+		int len_keyWords = keyWords.length;
+		for (int k = 0; k < len_keyWords; ++k)
+		{
+			keyWord2kindCode.put(keyWords[k], k + 1);
+		}
+
+		int len_singleDelimiters = singleDelimiters.length;
+		for (int k = 0; k < len_singleDelimiters; ++k)
+		{
+			singleDelimiter2kindCode.put(singleDelimiters[k], kindCode_singleDelimiters[k]);
+		}
+
+	}
+
+	// 判断是否为保留字,每次读取的是字符串
+	public static boolean isKeyWord(String str)
+	{
+		return keyWord2kindCode.containsKey(str);
+	}
+
+	// 判断是否为单界符，每次读取的是字符
+	public static boolean isSingleDlimeter(char ch)
+	{
+		return singleDelimiter2kindCode.containsKey(ch);
+	}
+
+	// 获取该保留字的种别码
+	public static int getKindCodeKeyWord(String str)
+	{
+		Integer val = keyWord2kindCode.get(str);
+		if(val == null) val = -1;
+		return val;
+
+	}
+
+	// 获取单界符的种别码
+	// '+','-','*', '/', '=', '<', '>', '(',')', '[', ']',':', '.', ';',','
+	public static int getKindCodeSingleDelimiter(char ch)
+	{
+		return singleDelimiter2kindCode.get(ch);
+	}
+
+	public static int getDoubleKindCode(String str)
+	{
+		int code = 0;
+		// '=','>=','<=',':='
+		if(str.equals(":="))
+		{
+			code = 51;
+		}
+		else if(str.equals(">="))
+		{
+			code = 58;
+		}
+		else if(str.equals("<="))
+		{
+			code = 54;
+		}
+		else if(str.equals(".."))
+		{
+			code = 47;
+		}
+		else if(str.equals("<>"))
+		{
+			code = 55;
+		}
+		return code;
+	}
+
+	/**
+	 * 词法分析核心函数
+	 * 
+	 * @throws IOException
+	 */
+	public static void tokenAnysis(String filePath) throws IOException
+	{
+		String inLine;
+		int lineCnt = 0;
+		char ch; // 单个字符
+		int tokenCnt = 0; // 用来统计二元组个数
+		BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath));
+		// 一行一行地分析
+		while ((inLine = bufferedReader.readLine()) != null)
+		{
+			int ind = 0;
+			++lineCnt; // 行号+1;
+			int colCnt = 1; // 列号
+			while (ind < inLine.length())
+			{
+				ch = inLine.charAt(ind);
+				// 判断读取第一个字符是否为字母
+				if(Character.isLetter(ch))
+				{
+					StringBuilder sb = new StringBuilder();
+					sb.append(ch);
+					++colCnt; // 列号+1
+					// 读取下一个字符
+					ch = inLine.charAt(++ind);
+					// 是字符或数字都ok
+					while (Character.isLetter(ch) || Character.isDigit(ch))
+					{
+						sb.append(ch);
+						if(ind == inLine.length() - 1)
+						{
+							++ind;
+							break;
+						}
+						else
+						{
+							// 继续读取字符
+							ch = inLine.charAt(++ind);
+						}
+						// 列号继续加1
+						++colCnt;
+					}
+
+					// 如果是关键字
+					if(isKeyWord(sb.toString()))
+					{
+						// 获取该关键字的种别码
+						int kindCode = getKindCodeKeyWord(sb.toString());
+						// 输出该关键字的二元组
+						System.out.print("(" + kindCode + "," + sb.toString() + ")" + "	");
+						// 二元组个数+1
+						tokenCnt++;
+					}
+					else
+					{
+						// 要么为标识符
+						// 输出该标识符的二元组
+						System.out.print("(" + 36 + "," + sb.toString() + ")" + " ");
+						tokenCnt++;
+					}
+					if(tokenCnt % 5 == 0)
+					{
+						System.out.println();
+					}
+					// 如果是单界符的话
+				}
+				else if(isSingleDlimeter(ch))
+				{
+					StringBuilder sb = new StringBuilder();
+					String dyh = "'";
+					// 如果是逗号(,)或者是分号(;)等于号(=)的话，直接输出二元组
+
+					if((ch == ',') || (ch == ';') || (ch == '='))
+					{
+						System.out.print("(" + getKindCodeSingleDelimiter(ch) + "," + ch + ")" + " ");
+						ind++;
+						colCnt++;
+						tokenCnt++;
+						// 如果是左括号'(',右括号')',左中括号'[',右中括号']',直接输出而元组
+					}
+					else if((ch == '(') || (ch == ')') || (ch == '[') || (ch == ']'))
+					{
+						System.out.print("(" + getKindCodeSingleDelimiter(ch) + "," + ch + ")" + " ");
+						ind++;
+						colCnt++;
+						tokenCnt++;
+
+					}
+					// 如果读取的字符是加(+),减(-),乘(*)的话，也直接输出该单词的二元组
+					else if((ch == '+') || (ch == '-') || (ch == '*'))
+					{
+						System.out.print("(" + getKindCodeSingleDelimiter(ch) + "," + ch + ")" + " ");
+						ind++;
+						colCnt++;
+						tokenCnt++;
+						// 如果读取的字符是等号(=),大于号(>),小于号(<)或者是冒号(:)
+						// 这时需要继续读取下一个字符进行判断是否是双界符
+					}
+					else if((ch == '>') || (ch == '<') || (ch == ':'))
+					{
+						// 定义一字符来存放上一个字符
+						char ch1 = ch;
+						sb.append(ch);
+						colCnt++;
+						// 读取下一个字符
+						ch = inLine.charAt(++ind);
+						// 如果下一个字符为等于号(=)
+						if(ch == '=')
+						{
+							sb.append(ch);
+							colCnt++;
+							// 这时候可以直接输出双界符的相关的二元组
+							System.out.print("(" + getDoubleKindCode(sb.toString()) + "," + sb.toString() + ")" + " ");
+							ind++;
+							tokenCnt++;
+							// 如果上一个字符是小于号(<)的话
+						}
+						else if(ch1 == '<')
+						{
+							// 如果下一个字符是大于号(>)的话
+							if(ch == '>')
+							{
+								sb.append(ch);
+								colCnt++;
+								// 这时会匹配为SIMPLE语言的不等于号(<>)
+								// 输出二元组
+								System.out.print(
+										"(" + getDoubleKindCode(sb.toString()) + "," + sb.toString() + ")" + " ");
+								tokenCnt++;
+							}
+							// 如果下一个字符不是与上一个字符匹配为双界符，就直接输出该单界符
+
+						}
+						else
+						{
+							System.out.print( "(" + getKindCodeSingleDelimiter(sb.charAt(0)) + "," + sb.charAt(0) + ")" + " " );
+							tokenCnt++;
+							// 并且跳出当前循环
+							continue;
+						}
+
+					}
+					// 如果读取的字符为斜线(/)或者是单引号('),双引号(")
+					else if((ch == '/') || (ch == dyh.charAt(0)))
+					{
+						sb.append(ch);
+						colCnt++;
+						if(ind == inLine.length() - 1)
+						{
+							ind++;
+							break;
+						}
+						else
+						{
+							// 继续读取字符
+							ch = inLine.charAt(++ind);
+						}
+						if(ch == '*')
+						{
+							sb.append(ch);
+							int bb = 0;
+							bb++;
+							ch = inLine.charAt(++ind);
+
+							colCnt++;
+							while (ch != '*')
+							{
+								if(ind == inLine.length() - 1)
+								{
+									ind++;
+									System.out.print("错误类型:注释不匹配" + " 第 " + lineCnt + " 行，第" + colCnt + " 列 ");
+									break;
+								}
+								else
+								{
+									ch = inLine.charAt(++ind);
+									colCnt++;
+								}
+							}
+							if(ind <= inLine.length())
+							{
+								break;
+							}
+							else
+							{
+								ch = inLine.charAt(++ind);
+							}
+							colCnt++;
+							if(ch == '/')
+							{
+								bb--;
+								ind++;
+								continue;
+							}
+							else
+							{
+								System.out.print("错误类型:注释不匹配" + " 第 " + lineCnt + " 行，第" + colCnt + " 列 ");
+							}
+						}
+						if(sb.charAt(0) == dyh.charAt(0))
+						{
+							StringBuilder sb1 = new StringBuilder();
+							sb1.append(ch);
+							colCnt++;
+							if(ind == inLine.length() - 1)
+							{
+								ind++;
+								break;
+							}
+							else
+							{
+								ch = inLine.charAt(++ind);
+								colCnt++;
+								while (ch != dyh.charAt(0))
+								{
+									sb1.append(ch);
+
+									if(ind == inLine.length() - 1)
+									{
+										ind++;
+										break;
+									}
+									else
+									{
+										// 继续读取字符
+										ch = inLine.charAt(++ind);
+										colCnt++;
+									}
+								}
+							}
+							if(ch == dyh.charAt(0))
+							{
+								// 输出的是字符常数
+								System.out.print("(" + 38 + "," + sb1.toString() + ")" + " ");
+								tokenCnt++;
+							}
+							else
+							{
+								System.out.print("错误类型:单引号不匹配" + " 第 " + lineCnt + " 行 , 第 " + colCnt + " 列");
+							}
+							ind++;
+						}
+
+					}
+					else if(ch == '.')
+					{
+						sb.append(ch);
+						colCnt++;
+						if(ind == inLine.length() - 1)
+						{
+							ind++;
+							System.out.print("(" + getKindCodeSingleDelimiter(ch) + "," + ch + ")" + " ");
+							tokenCnt++;
+						}
+						else
+						{
+							// 继续读取字符
+							ch = inLine.charAt(++ind);
+							if(ch == '.')
+							{
+								sb.append(ch);
+								// 这时候可以直接输出双界符(..)的相关的二元组
+								System.out.print(
+										"(" + getDoubleKindCode(sb.toString()) + "," + sb.toString() + ")" + " ");
+								ind++;
+								colCnt++;
+								tokenCnt++;
+							}
+							else
+							{
+								System.out.print("(" + getKindCodeSingleDelimiter(sb.charAt(0)) + "," + sb.charAt(0)
+										+ ")" + " ");
+								ind++;
+								colCnt++;
+							}
+						}
+
+					}
+					if(tokenCnt % 5 == 0)
+					{
+						System.out.println();
+					}
+				}
+				// 如果第一次读入的是数字
+				else if(Character.isDigit(ch))
+				{
+					StringBuilder sb = new StringBuilder();
+					sb.append(ch);
+					colCnt++;
+					ch = inLine.charAt(++ind);
+					if(Character.isDigit(ch))
+					{
+						while (Character.isDigit(ch))
+						{
+							sb.append(ch);
+							colCnt++;
+							ch = inLine.charAt(++ind);
+						}
+						System.out.print("(" + 37 + "," + sb.toString() + ")" + " ");
+						tokenCnt++;
+					}
+					if(Character.isLetter(ch))
+					{
+						while (Character.isLetter(ch))
+						{
+							sb.append(ch);
+							colCnt++;
+							ch = inLine.charAt(++ind);
+						}
+						System.out.print("非法字符" + sb.toString() + " 第 " + lineCnt + " 行,第 " + colCnt + " 列出错");
+					}
+
+					if(tokenCnt % 5 == 0)
+					{
+						System.out.println();
+					}
+				}
+				else
+				{
+					ind++;
+					colCnt++;
+				}
+
+			}
+
+		}
+		bufferedReader.close();
+
+	}
+
+	/**
+	 * @param args
+	 * @throws IOException
+	 */
+	public static void main(String[] args) throws IOException
+	{
+		// TODO Auto-generated method stub
+		Scanner scanner = new Scanner(System.in);
+
+		System.out.println("input the file path");
+
+		String testName = scanner.nextLine();
+		scanner.close();
+		tokenAnysis(testName);
+
+	}
+
+}
