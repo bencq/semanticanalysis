@@ -111,6 +111,7 @@ class Token
 		this.content = content;
 		this.lineInd = lineInd;
 		this.posInd = posInd;
+		this.symbol = new Symbol(-1, -1, "");
 	}
 	
 	public Token(String content)
@@ -118,6 +119,7 @@ class Token
 		this.content = content;
 		this.lineInd = 0;
 		this.posInd = 0;
+		this.symbol = new Symbol(-1, -1, "");
 	}
 	
 	public Token(Symbol symbol, String content, int lineInd, int posInd)
@@ -162,8 +164,8 @@ class GramHelper
 			for(int posInd = 0; posInd < symbolListInOneLine.size(); ++posInd)
 			{
 				Symbol symbol = symbolListInOneLine.get(posInd);
-				String content = /*getCotent(symbol);*/
-				seqNum2ConstantsAndSymbol.get(symbol.seqNum);
+				String content = symbol.content;
+				//seqNum2ConstantsAndSymbol.get(symbol.seqNum);
 				Token token = new Token(symbol, content, lineInd, posInd);
 				this.tokenList.add(token);
 			}
@@ -178,29 +180,29 @@ class GramHelper
 	}
 
 
-
-	private String getCotent(Symbol symbol)
-	{
-		
-		if(symbol.kindCode == LexAnalysis.CONSTANT || symbol.kindCode == LexAnalysis.IDENTIFIER || symbol.kindCode == LexAnalysis.CONST_CHARS)
-		{
-			return seqNum2ConstantsAndSymbol.get(symbol.kindCode);
-		}/*
-		else if(LexAnalysis.kindCode2Double(symbol.kindCode) != null)
-		{
-			return LexAnalysis.kindCode2Double(symbol.kindCode);
-		}
-		else if(LexAnalysis.kindCode2singleDelimiter.get(symbol.kindCode) != null)
-		{
-			return LexAnalysis.kindCode2singleDelimiter.get(symbol.kindCode).toString();
-		}*/
-		
-		else
-		{
-			return null;
-		}
-		
-	}
+	
+//	private String getCotent(Symbol symbol)
+//	{
+//		
+//		if(symbol.kindCode == LexAnalysis.CONSTANT || symbol.kindCode == LexAnalysis.IDENTIFIER || symbol.kindCode == LexAnalysis.CONST_CHARS)
+//		{
+//			return seqNum2ConstantsAndSymbol.get(symbol.kindCode);
+//		}/*
+//		else if(LexAnalysis.kindCode2Double(symbol.kindCode) != null)
+//		{
+//			return LexAnalysis.kindCode2Double(symbol.kindCode);
+//		}
+//		else if(LexAnalysis.kindCode2singleDelimiter.get(symbol.kindCode) != null)
+//		{
+//			return LexAnalysis.kindCode2singleDelimiter.get(symbol.kindCode).toString();
+//		}*/
+//		
+//		else
+//		{
+//			return null;
+//		}
+//		
+//	}
 
 
 
