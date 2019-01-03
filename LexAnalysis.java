@@ -171,14 +171,14 @@ public class LexAnalysis
 		legalCharacterSet.addAll(Arrays.asList(singleDelimiters));
 		legalCharacterSet.addAll(Arrays.asList(otherLegalCharacters));
 		
-		
+		//将保留字映射到种别码
 		int len_keyWords = keyWords.length;
 		for (int k = 0; k < len_keyWords; ++k)
 		{
 			keyWord2kindCode.put(keyWords[k], k + 1);
-			
 		}
-
+		
+		//将单界符映射到种别码
 		int len_singleDelimiters = singleDelimiters.length;
 		for (int k = 0; k < len_singleDelimiters; ++k)
 		{
@@ -530,14 +530,18 @@ public class LexAnalysis
 	}
 	
 	
-	static void error(int lineCnt, int ind, String errorString)
+	void error(int lineCnt, int ind, String errorString)
 	{
 		//出错处理函数
 		System.err.println("terminated");
 		System.err.println(errorString);
 		System.err.println("in line " + lineCnt + " column " + (ind + 1));
-		
-		
+		isError = true;
+	}
+	
+	void printSymbols()
+	{
+		printByInterval(symbolList, 5);
 	}
 	
 	static void printByLine(List<ArrayList<Symbol>> symbols)
@@ -582,16 +586,22 @@ public class LexAnalysis
 	//常量表 如数字 标识符名 字符串
 	HashMap<String, Integer> constantsAndSymbol2SeqNum;
 	
+	//常量 序号
+	int seqNumCnt = 0;
 	
+	//出错记录变量
+	boolean isError;
 	
-	
-	void tokenAnalysis(BufferedReader bufferedReader) throws IOException
+	boolean tokenAnalysis(BufferedReader bufferedReader) throws IOException
 	{
+		
+		
+		isError = false;
+		
+		
 		//常量表 如数字 标识符名 字符串
 		constantsAndSymbol2SeqNum = new HashMap<>();
 		
-		//常量 序号
-		int seqNumCnt = 0;
 		
 		//二元组表 以每行记录
 		symbolList = new ArrayList<>();
@@ -626,7 +636,8 @@ public class LexAnalysis
 			//初始化状态
 			int state = State.START;
 			
-			while(ind < len)
+			
+			while(ind < len) //不断地获取一行中的字符
 			{
 
 				ch = line.charAt(ind);
@@ -794,11 +805,17 @@ public class LexAnalysis
 		}
 		
 		//清空错误输出 java err和out混用输出顺序有问题
-		System.err.flush();
+		if(isError)
+		{
+			System.err.flush();
+			return false;
+		}
 		
+		return true;
 		//打印
 		//printByLine(symbolList);
-		printByInterval(symbolList, 5);
+		//printByInterval(symbolList, 5);
+		
 		//System.out.println(constantsAndSymbol2SeqNum.toString());
 	}
 
