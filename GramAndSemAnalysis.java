@@ -162,7 +162,8 @@ class GramHelper
 			for(int posInd = 0; posInd < symbolListInOneLine.size(); ++posInd)
 			{
 				Symbol symbol = symbolListInOneLine.get(posInd);
-				String content = seqNum2ConstantsAndSymbol.get(symbol.seqNum);
+				String content = /*getCotent(symbol);*/
+				seqNum2ConstantsAndSymbol.get(symbol.seqNum);
 				Token token = new Token(symbol, content, lineInd, posInd);
 				this.tokenList.add(token);
 			}
@@ -173,6 +174,31 @@ class GramHelper
 		tokenInd = 0;
 		
 
+		
+	}
+
+
+
+	private String getCotent(Symbol symbol)
+	{
+		
+		if(symbol.kindCode == LexAnalysis.CONSTANT || symbol.kindCode == LexAnalysis.IDENTIFIER || symbol.kindCode == LexAnalysis.CONST_CHARS)
+		{
+			return seqNum2ConstantsAndSymbol.get(symbol.kindCode);
+		}/*
+		else if(LexAnalysis.kindCode2Double(symbol.kindCode) != null)
+		{
+			return LexAnalysis.kindCode2Double(symbol.kindCode);
+		}
+		else if(LexAnalysis.kindCode2singleDelimiter.get(symbol.kindCode) != null)
+		{
+			return LexAnalysis.kindCode2singleDelimiter.get(symbol.kindCode).toString();
+		}*/
+		
+		else
+		{
+			return null;
+		}
 		
 	}
 
@@ -361,7 +387,7 @@ public class GramAndSemAnalysis
 	}
 	private Token generateTempVar()
 	{
-		String content = "T" + sys_tempVar++;
+		String content = "T" + String.valueOf(sys_tempVar++);
 		Token temp = new Token(content, LexAnalysis.IDENTIFIER, constantMap.size());
 		constantMap.put(content, constantMap.size());
 		return temp;
@@ -631,7 +657,7 @@ public class GramAndSemAnalysis
 			error("expect keyword \"do\"", gramHelper.getCurToken().lineInd);
 		}
 		
-		TAC tac = new TAC(new Token("j"), new Token("-"), new Token("-"), new Token(String.valueOf(chainState_temp.codeBegin)));
+		TAC tac = new TAC(new Token("jump"), new Token("-"), new Token("-"), new Token(String.valueOf(chainState_temp.codeBegin)));
 		pushTac(tac);
 		
 		for (int i = 0; i < chainState_temp.falseChain.size() - 1; ++i)
@@ -747,7 +773,7 @@ public class GramAndSemAnalysis
 					chainState_temp.trueChain.add(pushTac(tac));
 				}
 				{
-					TAC tac = new TAC(new Token("jump", 0, 0), new Token("-"), new Token("-"), new Token("-"));
+					TAC tac = new TAC(new Token("jump"), new Token("-"), new Token("-"), new Token("-"));
 					chainState_temp.falseChain.add(pushTac(tac));
 				}	
 			}
@@ -786,7 +812,7 @@ public class GramAndSemAnalysis
 						chainState_temp.trueChain.add(pushTac(tac));						
 					}
 					{
-						TAC tac = new TAC(new Token("j"), new Token("-"), new Token("-"), new Token("-"));
+						TAC tac = new TAC(new Token("jump"), new Token("-"), new Token("-"), new Token("-"));
 						chainState_temp.falseChain.add(pushTac(tac));
 					}
 				}
@@ -869,8 +895,8 @@ public class GramAndSemAnalysis
 		chainState_temp.codeBegin = addressNum;
 		gramHelper.getNextToken();
 		chainState_temp = bool_Exp();
-		int curKindCode = gramHelper.getCurToken().symbol.kindCode;
-		if (curKindCode == LexAnalysis.keyWord2kindCode.get("then"))
+		//int curKindCode = gramHelper.getCurToken().symbol.kindCode;
+		if (gramHelper.getCurToken().symbol.kindCode == LexAnalysis.keyWord2kindCode.get("then"))
 		{
 			gramHelper.getNextToken();
 			production_sentence();
@@ -883,7 +909,7 @@ public class GramAndSemAnalysis
 		{
 			error("expect keyword \"then\"", gramHelper.getCurToken().lineInd);
 		}
-		if (curKindCode == LexAnalysis.keyWord2kindCode.get("else"))
+		if (gramHelper.getCurToken().symbol.kindCode == LexAnalysis.keyWord2kindCode.get("else"))
 		{
 			//else
 			gramHelper.getNextToken();
@@ -1064,12 +1090,12 @@ public class GramAndSemAnalysis
 		for (TAC element : tacList){
 			int ind = 0;
 			TAC nextJump = element;
-			while (nextJump.opToken.content.equals("jump") )
+			while (/*nextJump.opToken.content != null && */nextJump.opToken.content.equals("jump") )
 			{
 				ind = Integer.parseInt(nextJump.resultToken.content);
 				nextJump = tacList.get(ind);
 			}
-			if (element.opToken.content.equals("jump"))
+			if (/*element.opToken.content != null && */element.opToken.content.equals("jump"))
 			{
 				element.resultToken.content = String.valueOf(ind);
 			}

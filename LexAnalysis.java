@@ -130,6 +130,8 @@ public class LexAnalysis
 
 	//保留字map
 	static HashMap<String, Integer> keyWord2kindCode = new HashMap<>();
+	//保留字反向map
+	static HashMap<Integer, String> kindCode2keyWord = new HashMap<>();
 
 	//单界符
 	static Character[] singleDelimiters = { '+', '-', '*', '/', '=', '<', '>', '(', ')', '[', ']', ':', '.', ';', ',' , '\''};
@@ -137,6 +139,9 @@ public class LexAnalysis
 	static Integer[] kindCode_singleDelimiters = { 43, 45, 41, 48, 56, 53, 57, 39, 40, 59, 60, 50, 46, 52, 44, -'\''};
 	//单界符map
 	static HashMap<Character, Integer> singleDelimiter2kindCode = new HashMap<>();
+	
+	//单界符反向map
+	static HashMap<Integer, Character> kindCode2singleDelimiter = new HashMap<>();
 	
 	//其他合法字符 即所有数字及大小写字母
 	static Character[] otherLegalCharacters = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'};
@@ -160,13 +165,18 @@ public class LexAnalysis
 		for (int k = 0; k < len_keyWords; ++k)
 		{
 			keyWord2kindCode.put(keyWords[k], k + 1);
+			kindCode2keyWord.put(k + 1, keyWords[k]);
 		}
 
 		int len_singleDelimiters = singleDelimiters.length;
 		for (int k = 0; k < len_singleDelimiters; ++k)
 		{
 			singleDelimiter2kindCode.put(singleDelimiters[k], kindCode_singleDelimiters[k]);
+			
+			kindCode2singleDelimiter.put(kindCode_singleDelimiters[k], singleDelimiters[k]);
 		}
+		
+		
 
 	}
 	
@@ -506,6 +516,32 @@ public class LexAnalysis
 				break;
 		}
 		return code;
+	}
+	
+	public static String kindCode2Double(int kindCode)
+	{
+		String doubleRet = null;
+		switch (kindCode)
+		{
+			case 51:
+				doubleRet = ":=";
+				break;
+			case 58:
+				doubleRet = ">=";
+				break;
+			case 54:
+				doubleRet = "<=";
+				break;
+			case 47:
+				doubleRet = "..";
+				break;
+			case 55:
+				doubleRet = "<>";
+				break;
+			default:
+				break;
+		}
+		return doubleRet;
 	}
 	
 	static void error(int lineCnt, int ind, String errorString)
