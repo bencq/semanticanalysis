@@ -860,7 +860,7 @@ public class GramAndSemAnalysis
 		}
 		else
 		{
-			error("unexpected token " + gramHelper.getCurTokenContent(), gramHelper.getCurToken());
+			error("unexpected token \"" + gramHelper.getCurTokenContent() + "\"", gramHelper.getCurToken());
 		}
 
 		return chainState_temp;
@@ -976,7 +976,7 @@ public class GramAndSemAnalysis
 		}
 		else
 		{
-			error("unexpected token " + gramHelper.getCurTokenContent(), gramHelper.getCurToken());
+			error("unexpected token \"" + gramHelper.getCurTokenContent() + "\"", gramHelper.getCurToken());
 		}
 
 		return chainState_temp;
