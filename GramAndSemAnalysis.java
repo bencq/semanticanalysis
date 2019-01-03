@@ -120,11 +120,12 @@ class Token
 		this.posInd = 0;
 	}
 	
-	public Token(Symbol symbol, int lineInd, int posInd)
+	public Token(Symbol symbol, String content, int lineInd, int posInd)
 	{
 		this.symbol = symbol;
 		this.lineInd = lineInd;
 		this.posInd = posInd;
+		this.content = content;
 	}
 	
 }
@@ -146,7 +147,12 @@ class GramHelper
 	public GramHelper(ArrayList<ArrayList<Symbol>> symbolList, HashMap<String, Integer> constantsAndSymbol2seqNum)
 	{
 		
-		
+		//反向索引
+		this.seqNum2ConstantsAndSymbol = new HashMap<>();
+		for(Entry<String, Integer> entry : constantsAndSymbol2seqNum.entrySet())
+		{
+			this.seqNum2ConstantsAndSymbol.put(entry.getValue(), entry.getKey());
+		}
 		
 		//平铺 方便处理
 		this.tokenList = new ArrayList<>();
@@ -156,7 +162,8 @@ class GramHelper
 			for(int posInd = 0; posInd < symbolListInOneLine.size(); ++posInd)
 			{
 				Symbol symbol = symbolListInOneLine.get(posInd);
-				Token token = new Token(symbol, lineInd, posInd);
+				String content = seqNum2ConstantsAndSymbol.get(symbol.seqNum);
+				Token token = new Token(symbol, content, lineInd, posInd);
 				this.tokenList.add(token);
 			}
 				
@@ -165,12 +172,7 @@ class GramHelper
 		//初始化下标
 		tokenInd = 0;
 		
-		//反向索引
-		this.seqNum2ConstantsAndSymbol = new HashMap<>();
-		for(Entry<String, Integer> entry : constantsAndSymbol2seqNum.entrySet())
-		{
-			this.seqNum2ConstantsAndSymbol.put(entry.getValue(), entry.getKey());
-		}
+
 		
 	}
 
@@ -188,7 +190,10 @@ class GramHelper
 	//获取当前的symbol
 	Token getCurToken()
 	{
-		return tokenList.get(tokenInd);
+		//
+		Token t = tokenList.get(tokenInd);
+		if(t.variableType != null) System.out.println("not null");
+		return t;
 	}
 	
 	String getCurTokenContent()
@@ -333,11 +338,19 @@ public class GramAndSemAnalysis
 			if (!checkDefine()){
 				error("undefined identifier " + gramHelper.getCurTokenContent(), gramHelper.getCurToken());
 			}
-			else if (gramHelper.getCurToken().variableType != VariableType.INTEGER)
+			else if (getCurrUnitType() != VariableType.INTEGER)
 			{
 				error("expect variable type integer, but " + gramHelper.getCurToken().variableType + " is found", gramHelper.getCurToken());
 			}
 			cal_stack.push(gramHelper.getCurToken());
+		}
+		else if(curKindCode == LexAnalysis.singleDelimiter2kindCode.get('('))
+		{
+			cacl_exp();
+			if(gramHelper.getCurToken().symbol.kindCode != LexAnalysis.singleDelimiter2kindCode.get(')'))
+			{
+				error("expect \')\'", gramHelper.getCurToken().lineInd);
+			}
 		}
 		else
 		{
@@ -397,30 +410,30 @@ public class GramAndSemAnalysis
 	
 	Token typeDefine()
 	{
-		Token token_temp = gramHelper.getCurToken();
+		Token token_temp = new Token("-");
+
+		int curKindCode = gramHelper.getCurToken().symbol.kindCode;
+		if(curKindCode == LexAnalysis.keyWord2kindCode.get("integer"))
 		{
-			int curKindCode = gramHelper.getCurToken().symbol.kindCode;
-			if(curKindCode == LexAnalysis.keyWord2kindCode.get("integer"))
-			{
-				token_temp.variableType = VariableType.INTEGER;
-				gramHelper.getNextToken();
-				
-			}
-			else if(curKindCode == LexAnalysis.keyWord2kindCode.get("bool"))
-			{
-				token_temp.variableType = VariableType.BOOL;
-				gramHelper.getNextToken();
-			}
-			else if(curKindCode == LexAnalysis.keyWord2kindCode.get("char"))
-			{
-				token_temp.variableType = VariableType.CHAR;
-				gramHelper.getNextToken();
-			}
-			else
-			{
-				error("syntax error " + gramHelper.getCurTokenContent(), gramHelper.getCurToken());
-			}
+			token_temp.variableType = VariableType.INTEGER;
+			gramHelper.getNextToken();
+			
 		}
+		else if(curKindCode == LexAnalysis.keyWord2kindCode.get("bool"))
+		{
+			token_temp.variableType = VariableType.BOOL;
+			gramHelper.getNextToken();
+		}
+		else if(curKindCode == LexAnalysis.keyWord2kindCode.get("char"))
+		{
+			token_temp.variableType = VariableType.CHAR;
+			gramHelper.getNextToken();
+		}
+		else
+		{
+			error("syntax error " + gramHelper.getCurTokenContent(), gramHelper.getCurToken());
+		}
+
 		return token_temp;
 		
 	}
@@ -429,12 +442,13 @@ public class GramAndSemAnalysis
 	Token remainVariableDefine()
 	{
 		Token token_temp = gramHelper.getCurToken();
-		if(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.singleDelimiter2kindCode.get(','))
+		int curKindCode = gramHelper.getCurToken().symbol.kindCode; 
+		if(curKindCode == LexAnalysis.singleDelimiter2kindCode.get(','))
 		{
 			gramHelper.getNextToken();
-			token_temp.variableType = production_variableDefine().variableType;
+			token_temp.variableType = valueDefine().variableType;
 		}
-		else if(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.singleDelimiter2kindCode.get(':'))
+		else if(curKindCode == LexAnalysis.singleDelimiter2kindCode.get(':'))
 		{
 			gramHelper.getNextToken();
 			token_temp.variableType = typeDefine().variableType;
@@ -447,7 +461,7 @@ public class GramAndSemAnalysis
 		
 	}
 	
-	Token production_variableDefine()
+	Token valueDefine()
 	{
 		Token token_temp = gramHelper.getCurToken();
 		
@@ -476,7 +490,7 @@ public class GramAndSemAnalysis
 		ChainState chainState_temp = new ChainState();
 		if(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.IDENTIFIER)
 		{
-			production_variableDefine();
+			valueDefine();
 			if(gramHelper.getCurToken().symbol.kindCode != LexAnalysis.singleDelimiter2kindCode.get(';'))
 			{
 				error("expect \';\' after program", gramHelper.getCurToken().lineInd);
@@ -496,7 +510,7 @@ public class GramAndSemAnalysis
 			gramHelper.getNextToken();
 			
 			// <变量定义> 展开
-			production_variableDefine();
+			valueDefine();
 			
 			//判断分号
 			if(gramHelper.getCurToken().symbol.kindCode != LexAnalysis.singleDelimiter2kindCode.get(';'))
@@ -635,7 +649,33 @@ public class GramAndSemAnalysis
 		ChainState chainState_temp = new ChainState();
 		chainState_temp.codeBegin = addressNum;
 		chainState_temp = bool_Term();
-		return null;
+		if(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.keyWord2kindCode.get("or"))
+		{
+			Token op = gramHelper.getCurToken();
+			gramHelper.getNextToken();
+			ChainState temp_state = bool_Exp();
+			chainState_temp.addTrueChain(temp_state);//or的真链直接保存等待回填
+			//将上一个bool_Term中需要回填的假链填上现在bool_Exp的code_begin
+			for (int i = 0; i < chainState_temp.falseChain.size(); ++i)
+			{
+				tacList.get(chainState_temp.falseChain.get(i)).resultToken.content = String.valueOf(temp_state.codeBegin);
+			}
+			//将当前的bool_Exp中的最后那个需要回填的假链保存在State中
+			chainState_temp.addFalseChain(temp_state);
+			if (chainState_temp.falseChain.size() >= 1)
+			{
+				chainState_temp.falseChain.set(0, chainState_temp.falseChain.get(chainState_temp.falseChain.size() - 1));
+				
+				//resize(1)
+				int first = chainState_temp.falseChain.get(0);
+				chainState_temp.falseChain.clear();
+				chainState_temp.falseChain.add(first);
+				
+				
+			}
+		}
+		return chainState_temp;
+		
 	}
 	
 	private ChainState bool_Term()
