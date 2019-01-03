@@ -278,7 +278,7 @@ public class GramAndSemAnalysis
 	int addressInd;
 	
 	//临时变量下标
-	int tempVarInd;
+	int tempVariableInd;
 	
 	
 	//作表达式计算所用的栈
@@ -327,7 +327,7 @@ public class GramAndSemAnalysis
 		
 		
 		//临时变量下标初始化 T1 .. T2 .. T3
-		tempVarInd = 1;
+		tempVariableInd = 1;
 	}
 	
 	//<项> -> <项> * <因子>│<项> / <因子>│<因子>
@@ -400,7 +400,7 @@ public class GramAndSemAnalysis
 			if (!judgeIsDefined()){
 				error("undefined identifier " + gramHelper.getCurTokenContent(), gramHelper.getCurToken());
 			}
-			else if (getCurrUnitType() != VariableType.INTEGER)
+			else if (getCurTokenType() != VariableType.INTEGER)
 			{
 				error("expect variable type integer, but " + gramHelper.getCurToken().variableType + " is found", gramHelper.getCurToken());
 			}
@@ -425,7 +425,7 @@ public class GramAndSemAnalysis
 	//生成临时变量，并且处理一致性
 	private Token generateTempVariable()
 	{
-		String content = "T" + String.valueOf(tempVarInd++);
+		String content = "T" + String.valueOf(tempVariableInd++);
 		Token temp = new Token(content, LexAnalysis.IDENTIFIER, constantMap.size());
 		constantMap.put(content, constantMap.size());
 		return temp;
@@ -842,7 +842,7 @@ public class GramAndSemAnalysis
 			{
 				error("undefined identifier " + gramHelper.getCurTokenContent(), gramHelper.getCurToken());				
 			}
-			if(getCurrUnitType() == VariableType.INTEGER)
+			if(getCurTokenType() == VariableType.INTEGER)
 			{
 				//回退
 				--gramHelper.tokenInd;
@@ -872,7 +872,7 @@ public class GramAndSemAnalysis
 					error("incomplete expression", gramHelper.getCurToken().lineInd);
 				}
 			}
-			else if(getCurrUnitType() == VariableType.BOOL)
+			else if(getCurTokenType() == VariableType.BOOL)
 			{
 				{
 					TAC tac = new TAC(new Token("jnz"), gramHelper.getCurToken(), Token.TOKEN_NULL, new Token("-"));
@@ -930,11 +930,15 @@ public class GramAndSemAnalysis
 		
 		
 	}
-	private VariableType getCurrUnitType()
+	
+	//获取Token的变量类型
+	private VariableType getCurTokenType()
 	{
 		int ind = constantMap.get(gramHelper.getCurTokenContent());
 		return variableList.get(ind).variableType;
 	}
+	
+	
 	private int addTac(TAC tac)
 	{
 		tacList.add(tac);
