@@ -298,6 +298,10 @@ public class GramAndSemAnalysis
 		constantMap = new HashMap<>();
 		
 		cal_stack = new Stack<>();
+		
+		
+		//变量初始化
+		sys_tempVar = 1;
 	}
 	
 	
@@ -698,9 +702,12 @@ public class GramAndSemAnalysis
 				int first = chainState_temp.falseChain.get(0);
 				chainState_temp.falseChain.clear();
 				chainState_temp.falseChain.add(first);
-				
-				
 			}
+		}
+		//布尔表达式结束，回填真链到当前最新地址
+		for (int i = 0; i < chainState_temp.trueChain.size(); ++i)
+		{
+			tacList.get(chainState_temp.trueChain.get(i)).resultToken.content = String.valueOf(addressNum);
 		}
 		return chainState_temp;
 		
