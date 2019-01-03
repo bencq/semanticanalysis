@@ -220,7 +220,6 @@ class GramHelper
 	String getCurTokenContent()
 	{
 		return getCurToken().symbol.content;
-		// return seqNum2ConstantsAndSymbol.get(getCurToken().symbol.seqNum);
 	}
 }
 
@@ -380,7 +379,7 @@ public class GramAndSemAnalysis
 		return chainState_temp;
 	}
 
-	// 生成临时变量，并且处理一致性
+	// 生成临时变量，下标加一
 	private Token generateTempVariable()
 	{
 		String content = "T" + String.valueOf(tempVariableInd++);
@@ -486,8 +485,8 @@ public class GramAndSemAnalysis
 		}
 
 		gramHelper.nextToken();
-
-		token_temp.variableType = rec_VariableDefine().variableType; // 标识符后续声明, 并保存变量类型
+		 // 连续声明标识符, 写入变量类型
+		token_temp.variableType = rec_VariableDefine().variableType;
 
 		variableMap.put(token_temp.symbol.content, token_temp);
 
@@ -831,7 +830,6 @@ public class GramAndSemAnalysis
 		}
 		else if(curKindCode == LexAnalysis.keyWord2kindCode.get("not"))
 		{
-			// Token op = gramHelper.getCurToken();
 			gramHelper.nextToken();
 			chainState_temp = expression_boolFactor();
 			chainState_temp.swapChain();
