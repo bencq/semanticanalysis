@@ -1,0 +1,555 @@
+package compilers;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Scanner;
+
+
+
+
+
+
+class State
+{
+	final static int START = 1;
+	
+	final static int BUILDING_DIGIT_LETTER = 2;
+	final static int FIN_BUILDING = 3; /* [a-zA-Z][a-zA-Z0-9]* */
+	final static int NUMBER = 4; 
+	final static int FIN_NUMBER = 5; /* [0-9]+ */ 
+	
+	final static int LT = 6;
+	
+	final static int FIN_LE = 7; /* <= */
+	final static int FIN_NE = 8; /* <> */
+	final static int FIN_LT = 9; /* < */
+	
+	final static int GT = 10;
+	final static int FIN_GE = 11; /* >= */
+	final static int FIN_GT = 12; /* > */
+	
+	final static int COLON = 13;
+	final static int FIN_ASSIGNMENT = 14; /* := */
+	final static int FIN_COLON = 15; /* : */
+	
+	final static int SLASH = 16;
+	final static int FIN_LEFT_ANNO = 17; /* /* */
+	final static int FIN_SLASH = 18; /* / */
+	
+	final static int DOT = 19;
+	final static int FIN_DOUBLE_DOT = 20; /* .. */
+	final static int FIN_DOT = 21; /* . */
+	
+	final static int ASTERISK = 22;
+	final static int FIN_RIGHT_ANNO = 23;
+	final static int FIN_ASTERISK = 24;
+	
+	final static int FIN_OTHERS = 25;
+	
+	final static int LEFT_QUOT = 26; /* ' */
+	final static int RIHGT_QUOT = 27; /* ' */
+	final static int FIN_QUOT = 28; /* 'bla bla' */
+	
+	
+	private static boolean T = true;
+	private static boolean F = false;
+	
+	
+	
+	final static boolean[] FIN_STATES = {F, F, F, T, F, T, F, T, T, T, F,  T,  T,  F,  T,  T,  F,  T,  T,  F,  T,  T,  F,  T,  T,  T,  F,  F,  T};
+	//                                  {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28}
+}
+
+/*
+enum State
+{
+	START,
+	SINGLE_LETTER;
+}
+*/
+class Symbol
+{
+	int kindCode;
+	int seqNum; //-1 stands for none
+	public Symbol(int kindCode, int seqNum)
+	{
+		this.kindCode = kindCode;
+		this.seqNum = seqNum;
+	}
+	
+}
+
+public class StateBasedLexSAnalyzer
+{
+
+	// 定义一个字符串数组用来保存保留字
+	
+	private static int IDENTIFIER = 36;
+	private static int CONSTANT = 37;
+	private static int CONST_CHARS = 38;
+	
+	
+	private static String[] keyWords = { "and", "array", "begin", "bool", "call", "case", "char", "constant", "dim",
+			"do", "else", "end", "false", "for", "if", "input", "integer", "not", "of", "or", "output", "procedure",
+			"program", "read", "real", "repeat", "set", "stop", "then", "to", "true", "until", "var", "while",
+			"write" };
+
+	private static HashMap<String, Integer> keyWord2kindCode = new HashMap<>();
+
+	private static char[] singleDelimiters = { '+', '-', '*', '/', '=', '<', '>', '(', ')', '[', ']', ':', '.', ';', ',' , '\''};
+	private static int[] kindCode_singleDelimiters = { 43, 45, 41, 48, 56, 53, 57, 39, 40, 59, 60, 50, 46, 52, 44, -'\''};
+	private static HashMap<Character, Integer> singleDelimiter2kindCode = new HashMap<>();
+
+	static
+	{
+		int len_keyWords = keyWords.length;
+		for (int k = 0; k < len_keyWords; ++k)
+		{
+			keyWord2kindCode.put(keyWords[k], k + 1);
+		}
+
+		int len_singleDelimiters = singleDelimiters.length;
+		for (int k = 0; k < len_singleDelimiters; ++k)
+		{
+			singleDelimiter2kindCode.put(singleDelimiters[k], kindCode_singleDelimiters[k]);
+		}
+
+	}
+	
+	private static int transMatrix[][] = new int[50][256];
+	
+	
+	static
+	{
+		//状态转移矩阵初始化
+		
+		//空格
+		transMatrix[State.START][' '] = State.START;
+		//-空格
+		
+		//字母
+		for(char ch = 'a'; ch <= 'z'; ++ch)
+		{
+			transMatrix[State.START][ch] = State.BUILDING_DIGIT_LETTER;
+			transMatrix[State.START][ch - 0x20] = State.BUILDING_DIGIT_LETTER;
+		}
+		//-字母
+		
+		//字母数字
+		for(char ch = '0'; ch <= '9'; ++ch)
+		{
+			transMatrix[State.BUILDING_DIGIT_LETTER][ch] = State.BUILDING_DIGIT_LETTER;
+		}
+		for(char ch = 'a'; ch <= 'z'; ++ch)
+		{
+			transMatrix[State.BUILDING_DIGIT_LETTER][ch] = State.BUILDING_DIGIT_LETTER;
+			transMatrix[State.BUILDING_DIGIT_LETTER][ch - 0x20] = State.BUILDING_DIGIT_LETTER;
+		}
+		//-字母数字
+		
+		//非字母数字
+		for(int ind = 0; ind < singleDelimiters.length; ++ind)
+		{
+			char ch = singleDelimiters[ind];
+			transMatrix[State.BUILDING_DIGIT_LETTER][ch] = State.FIN_BUILDING;
+		}
+		transMatrix[State.BUILDING_DIGIT_LETTER][' '] = State.FIN_BUILDING;
+		//-非字母数字
+		
+		//数字
+		for(char ch = '0'; ch <= '9'; ++ch)
+		{
+			transMatrix[State.START][ch] = State.NUMBER;
+			transMatrix[State.NUMBER][ch] = State.NUMBER;
+		}
+		//-数字
+		
+		//非数字
+		for(int ind = 0; ind < singleDelimiters.length; ++ind)
+		{
+			char ch = singleDelimiters[ind];
+			transMatrix[State.NUMBER][ch] = State.FIN_NUMBER;
+		}
+		transMatrix[State.NUMBER][' '] = State.FIN_NUMBER;
+		//-非数字
+		
+		//小于号 <
+		transMatrix[State.START]['<'] = State.LT;		
+		//-小于号 <
+		
+		//小于等于号 <=
+		transMatrix[State.LT]['='] = State.FIN_LE;
+		//-小于等于号 <=
+		
+		//不等于号 <>
+		transMatrix[State.LT]['>'] = State.FIN_NE;
+		//-不等于号 <>
+		
+		//fin 小于号  <
+		for(int ind = 0; ind < singleDelimiters.length; ++ind)
+		{
+			char ch = singleDelimiters[ind];
+			transMatrix[State.LT][ch] = State.FIN_LT;
+		}
+		transMatrix[State.LT][' '] = State.FIN_LT;
+		//-fin 小于号  <
+		
+		//大于号 >
+		transMatrix[State.START]['>'] = State.GT;
+		//-大于号 >
+		
+		//大于等于号 >=
+		transMatrix[State.GT]['='] = State.FIN_GE;
+		//-大于等于号 >=
+		
+		//fin 大于号 >
+		for(int ind = 0; ind < singleDelimiters.length; ++ind)
+		{
+			char ch = singleDelimiters[ind];
+			transMatrix[State.GT][ch] = State.FIN_GT;
+		}
+		transMatrix[State.GT][' '] = State.FIN_GT;
+		//-fin 大于号 >
+		
+		//冒号 :
+		transMatrix[State.START][':'] = State.COLON;
+		//-冒号 :
+		
+		//赋值号 :=
+		transMatrix[State.COLON]['='] = State.FIN_ASSIGNMENT;
+		//-赋值号 :=
+		
+		//fin 冒号 :
+		for(int ind = 0; ind < singleDelimiters.length; ++ind)
+		{
+			char ch = singleDelimiters[ind];
+			transMatrix[State.COLON][ch] = State.FIN_COLON;
+		}
+		transMatrix[State.COLON][' '] = State.FIN_COLON;
+		//-fin 冒号 :
+		
+		//斜杠 /
+		transMatrix[State.START]['/'] = State.SLASH;
+		//-斜杠 /
+		
+		//左注释号 /*
+		transMatrix[State.SLASH]['*'] = State.FIN_LEFT_ANNO;
+		//-左注释号 /*
+		
+		//fin 斜杠 /
+		for(int ind = 0; ind < singleDelimiters.length; ++ind)
+		{
+			char ch = singleDelimiters[ind];
+			transMatrix[State.SLASH][ch] = State.FIN_SLASH;
+		}
+		transMatrix[State.SLASH][' '] = State.FIN_SLASH;
+		//-fin 斜杠 /
+		
+		//点 .
+		transMatrix[State.START]['.'] = State.DOT;
+		//-点 .
+		
+		//双点 ..
+		transMatrix[State.DOT]['.'] = State.FIN_DOT;
+		//-双点 ..
+		
+		//fin 点 .
+		for(int ind = 0; ind < singleDelimiters.length; ++ind)
+		{
+			char ch = singleDelimiters[ind];
+			transMatrix[State.DOT][ch] = State.FIN_DOT;
+		}
+		transMatrix[State.DOT][' '] = State.FIN_DOT;
+		//-fin 点 .
+		
+		//星号 *
+		transMatrix[State.START]['*'] = State.ASTERISK;
+		//-星号 *
+		
+		//右注释号 */
+		transMatrix[State.ASTERISK]['/'] = State.FIN_RIGHT_ANNO;
+		//-右注释号 */
+		
+		//fin 星号 *
+		for(int ind = 0; ind < singleDelimiters.length; ++ind)
+		{
+			char ch = singleDelimiters[ind];
+			transMatrix[State.ASTERISK][ch] = State.FIN_ASTERISK;
+		}
+		transMatrix[State.ASTERISK][' '] = State.FIN_ASTERISK;
+		//-fin 星号 *
+		
+		//左单引号 '
+		transMatrix[State.START]['\''] = State.LEFT_QUOT;
+		//左单引号 '
+		
+		//字符常量 others
+		for(int ind = 0; ind < transMatrix[0].length; ++ind)
+		{
+			transMatrix[State.LEFT_QUOT][ind] = State.LEFT_QUOT;
+		}
+		//-字符常量 others
+		
+		//右单引号 '
+		transMatrix[State.LEFT_QUOT]['\''] = State.RIHGT_QUOT;
+		//右单引号 '
+		
+		//fin 字符常量
+		for(int ind = 0; ind < singleDelimiters.length; ++ind)
+		{
+			char ch = singleDelimiters[ind];
+			transMatrix[State.RIHGT_QUOT][ch] = State.FIN_QUOT;
+		}
+		transMatrix[State.RIHGT_QUOT][' '] = State.FIN_QUOT;
+		//-fin 字符常量
+		
+		//其他符号
+		for(int ind = 0; ind < singleDelimiters.length; ++ind)
+		{
+			char ch = singleDelimiters[ind];
+			if(transMatrix[State.START][ch] == 0)
+			{
+				transMatrix[State.START][ch] = State.FIN_OTHERS;				
+			}
+		}
+		//-其他符号
+		
+		
+		
+		
+		
+		
+		
+	}
+	
+	
+	
+	
+
+	// 判断是否为保留字,每次读取的是字符串
+	public static boolean isKeyWord(String str)
+	{
+		return keyWord2kindCode.containsKey(str);
+	}
+
+	// 判断是否为单界符，每次读取的是字符
+	public static boolean isSingleDlimeter(char ch)
+	{
+		return singleDelimiter2kindCode.containsKey(ch);
+	}
+
+	// 获取该保留字的种别码
+	public static int getKindCodeKeyWord(String str)
+	{
+		Integer val = keyWord2kindCode.get(str);
+		if(val == null) val = -1;
+		return val;
+
+	}
+
+	// 获取单界符的种别码
+	// '+','-','*', '/', '=', '<', '>', '(',')', '[', ']',':', '.', ';',','
+	public static int getKindCodeSingleDelimiter(char ch)
+	{
+		return singleDelimiter2kindCode.get(ch);
+	}
+
+	public static int getDoubleKindCode(String str)
+	{
+		int code = -1;
+		switch (str)
+		{
+			case ":=":
+				code = 51;
+				break;
+			case ">=":
+				code = 58;
+				break;
+			case "<=":
+				code = 54;
+				break;
+			case "..":
+				code = 47;
+				break;
+			case "<>":
+				code = 55;
+				break;
+			default:
+				break;
+		}
+		return code;
+	}
+	
+	static void error()
+	{
+		
+	}
+	
+	static void print(List<ArrayList<Symbol>> symbols)
+	{
+		for(List<Symbol> thisLineSymbol : symbols)
+		{
+			for(Symbol symbol : thisLineSymbol)
+			{
+				System.out.print("( " + symbol.kindCode + " , " + symbol.seqNum + " )");
+			}
+			System.out.println();
+		}
+	}
+	
+	static void tokenAnalysis(BufferedReader bufferedReader) throws IOException
+	{
+		int seqNumCnt = 0;
+		ArrayList<ArrayList<Symbol>> symbolList = new ArrayList<>();
+		String line = null;
+		while((line = bufferedReader.readLine()) != null)
+		{
+			//方便处理
+			line += " ";
+			
+			ArrayList<Symbol> thisLineSymbol = new ArrayList<>();
+			symbolList.add(thisLineSymbol);
+			StringBuilder stringBuilder = new StringBuilder();
+			int ind = 0; int len = line.length();
+			char ch; int state = State.START; boolean inAnno = false;
+			while(ind < len)
+			{
+				if(inAnno)
+				{
+					ind = line.indexOf("*\\", ind);
+					if(ind < 0)
+					{
+						//缺少右注释
+						error();
+						break;
+					}
+					else
+					{
+						ind = ind + 2;
+						inAnno = false;
+						continue;
+					}
+				}
+				ch = line.charAt(ind);
+
+				
+
+				//状态转移
+				state = transMatrix[state][ch];
+				
+				System.out.println("state:" + state);
+				if(state == 0)
+				{
+					//不能转移 or 非法字符
+					error();
+					break;
+				}
+				else if(State.FIN_STATES[state])
+				{
+					//终结状态
+					String str = stringBuilder.toString();
+					System.out.println(str);
+					if(state == State.FIN_BUILDING)
+					{
+						//标识符或者保留字
+						
+						Integer kindCode = keyWord2kindCode.get(str);
+						if(kindCode != null)
+						{
+							//保留字
+							Symbol symbol = new Symbol(kindCode, -1);
+							thisLineSymbol.add(symbol);
+						}
+						else
+						{
+							//标识符
+							Symbol symbol = new Symbol(IDENTIFIER, ++seqNumCnt);
+							thisLineSymbol.add(symbol);
+						}
+					}
+					else if(state == State.FIN_NUMBER)
+					{
+						//整数
+						Symbol symbol = new Symbol(CONSTANT, ++seqNumCnt);
+						thisLineSymbol.add(symbol);
+					}
+					else if(state == State.FIN_QUOT)
+					{
+						//字符常量
+						Symbol symbol = new Symbol(CONST_CHARS, ++seqNumCnt);
+						thisLineSymbol.add(symbol);
+					}
+					//其他终结状态
+					else
+					{
+						if(str.length() == 1)
+						{
+							//单分隔符
+							Integer kindCode = singleDelimiter2kindCode.get(str.charAt(0));
+							Symbol symbol = new Symbol(kindCode, -1);
+							thisLineSymbol.add(symbol);
+						}
+						else
+						{
+							//双分割符
+							Integer kindCode = getDoubleKindCode(str);
+							if(kindCode == getDoubleKindCode("/*"))
+							{
+								//进入注释状态
+								inAnno = true;
+								continue;
+							}
+							Symbol symbol = new Symbol(kindCode, -1);
+							thisLineSymbol.add(symbol);
+						}
+					}
+					//清空缓冲
+					stringBuilder.setLength(0);
+					//回到最初状态
+					state = State.START;
+				}
+				else
+				{
+					if(state != State.START)
+					{
+						//去除空格
+						stringBuilder.append(ch);
+					}
+					//下一字符
+					++ind;
+				}
+				
+			}
+			if(state == State.LEFT_QUOT)
+			{
+				//缺少右单引号
+				error();
+				break;
+			}
+			
+		}
+		
+		//打印
+		print(symbolList);
+	}
+
+	public static void main(String[] args) throws IOException
+	{
+		// TODO Auto-generated method stub
+		Scanner scanner = new Scanner(System.in);
+
+		System.out.println("input the file path");
+		
+		String filePath = scanner.nextLine();
+		scanner.close();
+		BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath));
+		
+		tokenAnalysis(bufferedReader);
+		bufferedReader.close();
+	}
+
+}
