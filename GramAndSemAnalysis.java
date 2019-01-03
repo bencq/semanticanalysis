@@ -535,11 +535,14 @@ public class GramAndSemAnalysis
 
 				gramHelper.nextToken();
 			}
+			
 
-			// 回溯一个token
-			--gramHelper.tokenInd;
 
 		}
+		
+		// 回溯一个token
+		--gramHelper.tokenInd;
+		
 		return chainState_temp;
 	}
 
