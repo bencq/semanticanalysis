@@ -575,6 +575,10 @@ public class LexAnalysis
 				}
 			}
 		}
+		if(cnt % numInLine != 0)
+		{
+			System.out.println();
+		}
 	}
 	
 	

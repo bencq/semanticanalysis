@@ -20,13 +20,13 @@ class ChainState
 	int codeBegin;
 	
 	//
-	boolean accept;
+	//boolean accept;
 	
 	public ChainState()
 	{
 		trueChain = new ArrayList<>();
 		falseChain = new ArrayList<>();
-		accept = true;
+		//accept = true;
 	}
 	
 	//将参数链的
@@ -828,7 +828,7 @@ public class GramAndSemAnalysis
 				if (type >= 53 && type <= 58)//匹配关系符
 				{
 					chainState_temp = cacl_exp();
-					if (!chainState_temp.accept)
+					if (false)
 					{
 						return chainState_temp;
 					}
