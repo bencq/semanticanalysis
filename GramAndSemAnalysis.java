@@ -1079,11 +1079,11 @@ public class GramAndSemAnalysis
 	{
 		gramHelper.tokenInd = 0;
 		production_program();
-		
+		compressJump();
 	}
 	public void printTAC()
 	{
-		//compressJump();
+		
 		int i = 0;
 		for (TAC element : tacList)
 		{

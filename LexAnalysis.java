@@ -97,13 +97,23 @@ class Symbol
 	int kindCode;
 	int seqNum; //-1 stands for none
 	
-	String content;
+	String content; //对应的词表示
+	// 'xxx'是字符常量，132是整数常量，其他是保留字或者标识符
+	// 存储方便后面语法和语义分析，单独的词法分析器可以删除
+	
 	public Symbol(int kindCode, int seqNum, String content)
 	{
 		this.kindCode = kindCode;
 		this.seqNum = seqNum;
 		this.content = content;
 	}
+	
+//	public Symbol(int kindCode, int seqNum)
+//	{
+//		this.kindCode = kindCode;
+//		this.seqNum = seqNum;
+//	}
+	
 	
 	public String toSymbolString()
 	{
@@ -625,6 +635,7 @@ public class LexAnalysis
 
 				if(ch >= transMatrix[0].length)
 				{
+					//非法字符 例如中文字符
 					ch = 0;
 				}
 				//状态转移
@@ -788,7 +799,7 @@ public class LexAnalysis
 		//打印
 		//printByLine(symbolList);
 		printByInterval(symbolList, 5);
-		System.out.println(constantsAndSymbol2SeqNum.toString());
+		//System.out.println(constantsAndSymbol2SeqNum.toString());
 	}
 
 	/*
