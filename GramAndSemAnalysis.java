@@ -16,7 +16,10 @@ class ChainState
 	ArrayList<Integer> trueChain;
 	ArrayList<Integer> falseChain;
 	
+	//开始的下标
 	int codeBegin;
+	
+	//
 	boolean accept;
 	
 	public ChainState()
@@ -269,7 +272,7 @@ public class GramAndSemAnalysis
 	
 	
 	//作表达式计算所用的栈
-	Stack<Token> stack_cacl;
+	Stack<Token> calcStack;
 	
 	
 	
@@ -303,16 +306,14 @@ public class GramAndSemAnalysis
 	//构造函数，利用词法分析的结果初始化
 	public GramAndSemAnalysis(ArrayList<ArrayList<Symbol>> symbolList, HashMap<String, Integer> constantsAndSymbol2seqNum)
 	{
+		//帮助类初始化
 		this.gramHelper = new GramHelper(symbolList, constantsAndSymbol2seqNum);
 		
-		
+		//数据结构初始化
 		tacList = new ArrayList<>();
-		
 		variableList = new ArrayList<>();
-		
 		constantMap = new HashMap<>();
-		
-		stack_cacl = new Stack<>();
+		calcStack = new Stack<>();
 		
 		
 		//临时变量下标初始化 T1 .. T2 .. T3
@@ -336,14 +337,14 @@ public class GramAndSemAnalysis
 			{
 				Token op = gramHelper.getCurToken();
 				chainState_temp = Term();
-				Token u1 = stack_cacl.pop();
-				Token u2 = stack_cacl.pop();
+				Token u1 = calcStack.pop();
+				Token u2 = calcStack.pop();
 				Token temp_var = generateTempVar();
 				
 				TAC tac = new TAC(op, u2, u1, temp_var);
 				addTac(tac);
 				
-				stack_cacl.push(temp_var);
+				calcStack.push(temp_var);
 				
 			}
 		}
@@ -363,11 +364,11 @@ public class GramAndSemAnalysis
 		{
 			Token op = gramHelper.getCurToken();
 			factor();
-			Token u1 = stack_cacl.pop();
+			Token u1 = calcStack.pop();
 			Token temp_var = generateTempVar();
 			
 			//取负后放回栈内
-			stack_cacl.push(temp_var);
+			calcStack.push(temp_var);
 			
 			//生成四元式
 			TAC tac = new TAC(op, u1, op, temp_var);
@@ -377,7 +378,7 @@ public class GramAndSemAnalysis
 		else if(curKindCode == LexAnalysis.CONSTANT)
 		{
 			//整数常量
-			stack_cacl.push(gramHelper.getCurToken());
+			calcStack.push(gramHelper.getCurToken());
 		}
 		else if(curKindCode == LexAnalysis.IDENTIFIER)
 		{
@@ -389,7 +390,7 @@ public class GramAndSemAnalysis
 			{
 				error("expect variable type integer, but " + gramHelper.getCurToken().variableType + " is found", gramHelper.getCurToken());
 			}
-			stack_cacl.push(gramHelper.getCurToken());
+			calcStack.push(gramHelper.getCurToken());
 		}
 		else if(curKindCode == LexAnalysis.singleDelimiter2kindCode.get('('))
 		{
@@ -423,15 +424,15 @@ public class GramAndSemAnalysis
 		{
 			Token op = gramHelper.getCurToken();
 			chainState_temp = Term();
-			if(stack_cacl.size() >= 2)
+			if(calcStack.size() >= 2)
 			{
-				Token u1 = stack_cacl.pop();
-				Token u2 = stack_cacl.pop();
+				Token u1 = calcStack.pop();
+				Token u2 = calcStack.pop();
 				Token temp_var = generateTempVar();
 				
 				TAC tac = new TAC(op, u2, u1, temp_var);
 				addTac(tac);
-				stack_cacl.push(temp_var);
+				calcStack.push(temp_var);
 				
 			}
 		}
@@ -599,7 +600,7 @@ public class GramAndSemAnalysis
 			error("expect variable type integer, but " + gramHelper.getCurToken().variableType + " is found", gramHelper.getCurToken());
 		}
 		
-		stack_cacl.push(gramHelper.getCurToken());
+		calcStack.push(gramHelper.getCurToken());
 		
 		gramHelper.nextToken();
 		
@@ -613,10 +614,10 @@ public class GramAndSemAnalysis
 		chainState_temp = cacl_exp();
 		
 		//赋值四元式
-		if(stack_cacl.size() >= 2)
+		if(calcStack.size() >= 2)
 		{
-			Token u1 = stack_cacl.pop();
-			Token u2 = stack_cacl.pop();
+			Token u1 = calcStack.pop();
+			Token u2 = calcStack.pop();
 			Token null_unit = new Token("-");
 			TAC tac = new TAC(assign_op, u1, null_unit, u2);
 			addTac(tac);
@@ -779,7 +780,7 @@ public class GramAndSemAnalysis
 			//表达式计算
 			chainState_temp = cacl_exp();
 			
-			Token u1 = stack_cacl.pop();
+			Token u1 = calcStack.pop();
 			
 			int type = gramHelper.getCurToken().symbol.kindCode;
 			
@@ -791,7 +792,7 @@ public class GramAndSemAnalysis
 				//匹配关系符 < <= <> = > >=
 				chainState_temp = cacl_exp();
 				 //获取计算结果
-				Token u2 = stack_cacl.pop();
+				Token u2 = calcStack.pop();
 				
 				//推入四元式
 				{
@@ -820,7 +821,7 @@ public class GramAndSemAnalysis
 				--gramHelper.tokenInd;
 				chainState_temp = cacl_exp();
 				
-				Token u1 = stack_cacl.pop();
+				Token u1 = calcStack.pop();
 				int type = gramHelper.getCurToken().symbol.kindCode;
 				Token op = gramHelper.getCurToken();
 				
@@ -831,7 +832,7 @@ public class GramAndSemAnalysis
 					{
 						return chainState_temp;
 					}
-					Token u2 = stack_cacl.pop();//获取最后的计算结果
+					Token u2 = calcStack.pop();//获取最后的计算结果
 					//这里要翻译a>b的语句
 					{
 						TAC tac = new TAC(new Token("j" + op.symbol.content), u1, u2, new Token("-"));
@@ -876,14 +877,14 @@ public class GramAndSemAnalysis
 		{
 			TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, new Token("-"));
 			chainState_temp.trueChain.add(addTac(tac));
-			stack_cacl.push(gramHelper.getCurToken());
+			calcStack.push(gramHelper.getCurToken());
 			gramHelper.nextToken();
 		}
 		else if(curKindCode == LexAnalysis.keyWord2kindCode.get("false"))
 		{
 			TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, new Token("-"));
 			chainState_temp.falseChain.add(addTac(tac));
-			stack_cacl.push(gramHelper.getCurToken());
+			calcStack.push(gramHelper.getCurToken());
 			gramHelper.nextToken();
 		}
 		else if(curKindCode == LexAnalysis.singleDelimiter2kindCode.get('('))
