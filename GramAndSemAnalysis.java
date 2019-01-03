@@ -16,8 +16,8 @@ class ChainState
 	ArrayList<Integer> trueChain;
 	ArrayList<Integer> falseChain;
 	
-	//开始的下标
-	int codeBegin;
+	//出口下标
+	int exitInd;
 	
 	
 	public ChainState()
@@ -336,7 +336,7 @@ public class GramAndSemAnalysis
 		
 		ChainState chainState_temp = new ChainState();
 		
-		chainState_temp.codeBegin = nextStat;
+		chainState_temp.exitInd = nextStat;
 		chainState_temp = expression_factor();
 		
 		gramHelper.nextToken();
@@ -371,7 +371,7 @@ public class GramAndSemAnalysis
 	private ChainState expression_factor()
 	{
 		ChainState chainState_temp = new ChainState();
-		chainState_temp.codeBegin = nextStat;
+		chainState_temp.exitInd = nextStat;
 		gramHelper.nextToken();
 		int curKindCode = gramHelper.getCurToken().symbol.kindCode;
 		if(curKindCode == LexAnalysis.singleDelimiter2kindCode.get('-'))
@@ -435,7 +435,7 @@ public class GramAndSemAnalysis
 	private ChainState expression_arithmetic()
 	{
 		ChainState chainState_temp = new ChainState();
-		chainState_temp.codeBegin = nextStat;
+		chainState_temp.exitInd = nextStat;
 		chainState_temp = expression_term();
 		
 		while(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.singleDelimiter2kindCode.get('+') || gramHelper.getCurToken().symbol.kindCode == LexAnalysis.singleDelimiter2kindCode.get('-')) 
@@ -460,7 +460,7 @@ public class GramAndSemAnalysis
 	}
 	
 	
-	//判断是否已有定义
+	//判断当前Token是否已有定义
 	private boolean judgeIsDefined()
 	{
 		for(Token token : variableList)
@@ -506,7 +506,7 @@ public class GramAndSemAnalysis
 	}
 	
 	
-	private Token multi_VariableDefine()
+	private Token rec_VariableDefine()
 	{
 		Token token_temp = gramHelper.getCurToken();
 		int curKindCode = gramHelper.getCurToken().symbol.kindCode; 
@@ -541,7 +541,7 @@ public class GramAndSemAnalysis
 		
 		gramHelper.nextToken();
 		
-		token_temp.variableType = multi_VariableDefine().variableType; //标识符后续声明, 并保存变量类型
+		token_temp.variableType = rec_VariableDefine().variableType; //标识符后续声明, 并保存变量类型
 		
 		constantMap.put(token_temp.symbol.content, variableList.size()); //更新指向的下标
 		
@@ -554,7 +554,7 @@ public class GramAndSemAnalysis
 		
 	}
 	
-	private ChainState multi_VariableDeclare()
+	private ChainState rec_VariableDeclare()
 	{
 		ChainState chainState_temp = new ChainState();
 		if(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.IDENTIFIER)
@@ -593,7 +593,7 @@ public class GramAndSemAnalysis
 			//标识符
 			while(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.IDENTIFIER)
 			{
-				chainState_temp = multi_VariableDeclare();
+				chainState_temp = rec_VariableDeclare();
 				
 				gramHelper.nextToken();
 			}
@@ -609,7 +609,7 @@ public class GramAndSemAnalysis
 	private ChainState statement_assign()
 	{
 		ChainState chainState_temp = new ChainState();
-		chainState_temp.codeBegin = nextStat;
+		chainState_temp.exitInd = nextStat;
 		if(!judgeIsDefined())
 		{
 			error("undefined identifier " + gramHelper.getCurTokenContent(), gramHelper.getCurToken());
@@ -688,7 +688,7 @@ public class GramAndSemAnalysis
 	private ChainState statement_while()
 	{
 		ChainState chainState_temp = new ChainState();
-		chainState_temp.codeBegin = nextStat;
+		chainState_temp.exitInd = nextStat;
 		gramHelper.nextToken();
 		chainState_temp = expression_bool();
 		
@@ -703,7 +703,7 @@ public class GramAndSemAnalysis
 			error("expect keyword \"do\"", gramHelper.getCurToken().lineInd);
 		}
 		
-		TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, new Token(String.valueOf(chainState_temp.codeBegin)));
+		TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, new Token(String.valueOf(chainState_temp.exitInd)));
 		emitTac(tac);
 		
 		for (int i = 0; i < chainState_temp.falseChain.size() - 1; ++i)
@@ -720,32 +720,33 @@ public class GramAndSemAnalysis
 	private ChainState expression_bool()
 	{
 		ChainState chainState_temp = new ChainState();
-		chainState_temp.codeBegin = nextStat;
+		chainState_temp.exitInd = nextStat;
 		chainState_temp = expression_boolTerm();
 		if(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.keyWord2kindCode.get("or"))
 		{
 			//Token op = gramHelper.getCurToken();
 			gramHelper.nextToken();
 			ChainState temp_state = expression_bool();
-			chainState_temp.appendToTrueChain(temp_state);//or的真链直接保存等待回填
-			//将上一个bool_Term中需要回填的假链填上现在bool_Exp的code_begin
+			//or的真链保存在ChainState中等待回填
+			chainState_temp.appendToTrueChain(temp_state);
+			//将前面<布尔项>中需要回填的假链填上当前<布尔表达式>的exitInd
 			for (int i = 0; i < chainState_temp.falseChain.size(); ++i)
 			{
-				tacList.get(chainState_temp.falseChain.get(i)).resultToken.symbol.content = String.valueOf(temp_state.codeBegin);
+				tacList.get(chainState_temp.falseChain.get(i)).resultToken.symbol.content = String.valueOf(temp_state.exitInd);
 			}
-			//将当前的bool_Exp中的最后那个需要回填的假链保存在State中
+			
+			//将<布尔表达式>中的最后需要回填的假链存进ChainState里
 			chainState_temp.appendToFalseChain(temp_state);
 			if (chainState_temp.falseChain.size() >= 1)
 			{
 				chainState_temp.falseChain.set(0, chainState_temp.falseChain.get(chainState_temp.falseChain.size() - 1));
 				
-				//resize(1)
 				int first = chainState_temp.falseChain.get(0);
 				chainState_temp.falseChain.clear();
 				chainState_temp.falseChain.add(first);
 			}
 		}
-		//布尔表达式结束，回填真链到当前最新地址
+		//回填真链到当前地址
 		for (int i = 0; i < chainState_temp.trueChain.size(); ++i)
 		{
 			tacList.get(chainState_temp.trueChain.get(i)).resultToken.symbol.content = String.valueOf(nextStat);
@@ -759,24 +760,26 @@ public class GramAndSemAnalysis
 	private ChainState expression_boolTerm()
 	{
 		ChainState chainState_temp = new ChainState();
-		chainState_temp.codeBegin = nextStat;
+		chainState_temp.exitInd = nextStat;
 		
 		chainState_temp = expression_boolFactor();
 		
 		
 		if(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.keyWord2kindCode.get("and"))
 		{
-			//Token op = gramHelper.getCurToken();
 			gramHelper.nextToken();
 			ChainState temp_state = expression_boolTerm();
-			chainState_temp.appendToFalseChain(temp_state);//假链直接保存等待回填
+			chainState_temp.appendToFalseChain(temp_state);	//and的真链保存在ChainState中等待回填
 			for (int i = 0; i < chainState_temp.trueChain.size(); ++i)
 			{
-				//将上一个bool_factor的真链回填到现在的bool_Term的code_begin
-				tacList.get(chainState_temp.trueChain.get(i)).resultToken.symbol.content = String.valueOf(temp_state.codeBegin);
+				//将前面<布因子>中需要回填的真链填上当前<布尔项>的exitInd
+
+				tacList.get(chainState_temp.trueChain.get(i)).resultToken.symbol.content = String.valueOf(temp_state.exitInd);
 			}
-			//将当前的bool_Term中的最后那个需要回填的真链保存在State中
+			
+			//将现在<布尔项>最后需要回填的真链存进ChainState里
 			chainState_temp.appendToTrueChain(temp_state);
+			//真链压缩
 			if (chainState_temp.trueChain.size() >= 1)
 			{
 				chainState_temp.trueChain.set(0, chainState_temp.trueChain.get(chainState_temp.trueChain.size() - 1));
@@ -796,7 +799,7 @@ public class GramAndSemAnalysis
 	private ChainState expression_boolFactor()
 	{
 		ChainState chainState_temp = new ChainState();
-		chainState_temp.codeBegin = nextStat;
+		chainState_temp.exitInd = nextStat;
 		
 		int curKindCode = gramHelper.getCurToken().symbol.kindCode;
 		if(curKindCode == LexAnalysis.singleDelimiter2kindCode.get('-') || curKindCode == LexAnalysis.CONSTANT)
@@ -814,14 +817,14 @@ public class GramAndSemAnalysis
 			Token op = gramHelper.getCurToken();
 			
 			
-			if(type >= 53 && type <= 58)
+			if(judgeIsRerationshipOp(type))
 			{
-				//匹配关系符 < <= <> = > >=
+				//关系符
 				chainState_temp = expression_arithmetic();
 				 //获取计算结果
 				Token u2 = calcStack.pop();
 				
-				//推入四元式
+				//产生四元式
 				{
 					TAC tac = new TAC(new Token("j" + op.symbol.content), u1, u2, new Token("-"));
 					chainState_temp.trueChain.add(emitTac(tac));
@@ -852,12 +855,12 @@ public class GramAndSemAnalysis
 				int type = gramHelper.getCurToken().symbol.kindCode;
 				Token op = gramHelper.getCurToken();
 				
-				if (type >= 53 && type <= 58)//匹配关系符
+				//关系符 < <= <> = > >=
+				if(judgeIsRerationshipOp(type))
 				{
 					chainState_temp = expression_arithmetic();
 					
-					Token u2 = calcStack.pop();//获取最后的计算结果
-					//这里要翻译a>b的语句
+					Token u2 = calcStack.pop();//计算结果
 					{
 						TAC tac = new TAC(new Token("j" + op.symbol.content), u1, u2, new Token("-"));
 						chainState_temp.trueChain.add(emitTac(tac));						
@@ -931,6 +934,14 @@ public class GramAndSemAnalysis
 		
 	}
 	
+	
+	//关系符 < <= <> = > >=
+	private boolean judgeIsRerationshipOp(int type)
+	{
+		//
+		return type >= 53 && type <= 58;
+	}
+	
 	//获取Token的变量类型
 	private VariableType getCurTokenType()
 	{
@@ -938,7 +949,7 @@ public class GramAndSemAnalysis
 		return variableList.get(ind).variableType;
 	}
 	
-	
+	//产生四元式
 	private int emitTac(TAC tac)
 	{
 		tacList.add(tac);
@@ -949,7 +960,7 @@ public class GramAndSemAnalysis
 	private ChainState statement_if()
 	{
 		ChainState chainState_temp = new ChainState();
-		chainState_temp.codeBegin = nextStat;
+		chainState_temp.exitInd = nextStat;
 		gramHelper.nextToken();
 		chainState_temp = expression_bool();
 		if (gramHelper.getCurToken().symbol.kindCode == LexAnalysis.keyWord2kindCode.get("then"))
@@ -984,7 +995,7 @@ public class GramAndSemAnalysis
 	private ChainState statement_repeat()
 	{
 		ChainState chainState_temp = new ChainState();
-		chainState_temp.codeBegin = nextStat;
+		chainState_temp.exitInd = nextStat;
 		gramHelper.nextToken();
 		statement_sentence();
 		int curKindCode = gramHelper.getCurToken().symbol.kindCode;
@@ -993,7 +1004,7 @@ public class GramAndSemAnalysis
 			gramHelper.nextToken();
 			ChainState temp_state = expression_bool();
 			int ind = temp_state.falseChain.get(temp_state.falseChain.size() - 1);
-			tacList.get(ind).resultToken.symbol.content = String.valueOf(chainState_temp.codeBegin);
+			tacList.get(ind).resultToken.symbol.content = String.valueOf(chainState_temp.exitInd);
 		}
 		else
 		{
