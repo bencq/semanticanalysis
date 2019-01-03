@@ -97,6 +97,12 @@ enum VariableType
 //符号
 class Token
 {
+	
+	//常量Token
+	final static Token TOKEN_J = new Token("j");
+	final static Token TOKEN_NULL = new Token("-");
+	
+	
 	Symbol symbol;
 	int lineInd; //行号
 	int posInd; //在该行的位置
@@ -667,7 +673,7 @@ public class GramAndSemAnalysis
 			error("expect keyword \"do\"", gramHelper.getCurToken().lineInd);
 		}
 		
-		TAC tac = new TAC(new Token("jump"), new Token("-"), new Token("-"), new Token(String.valueOf(chainState_temp.codeBegin)));
+		TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, new Token(String.valueOf(chainState_temp.codeBegin)));
 		pushTac(tac);
 		
 		for (int i = 0; i < chainState_temp.falseChain.size() - 1; ++i)
@@ -782,11 +788,11 @@ public class GramAndSemAnalysis
 				
 				//推入四元式
 				{
-					TAC tac = new TAC(new Token("j" + op.content), u1, u2, new Token("-"));
+					TAC tac = new TAC(new Token("j" + op.content), u1, u2, Token.TOKEN_NULL);
 					chainState_temp.trueChain.add(pushTac(tac));
 				}
 				{
-					TAC tac = new TAC(new Token("jump"), new Token("-"), new Token("-"), new Token("-"));
+					TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, Token.TOKEN_NULL);
 					chainState_temp.falseChain.add(pushTac(tac));
 				}	
 			}
@@ -821,11 +827,11 @@ public class GramAndSemAnalysis
 					Token u2 = cal_stack.pop();//获取最后的计算结果
 					//这里要翻译a>b的语句
 					{
-						TAC tac = new TAC(new Token("j" + op.content), u1, u2, new Token("-"));
+						TAC tac = new TAC(new Token("j" + op.content), u1, u2, Token.TOKEN_NULL);
 						chainState_temp.trueChain.add(pushTac(tac));						
 					}
 					{
-						TAC tac = new TAC(new Token("jump"), new Token("-"), new Token("-"), new Token("-"));
+						TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, Token.TOKEN_NULL);
 						chainState_temp.falseChain.add(pushTac(tac));
 					}
 				}
@@ -837,11 +843,11 @@ public class GramAndSemAnalysis
 			else if(getCurrUnitType() == VariableType.BOOL)
 			{
 				{
-					TAC tac = new TAC(new Token("jnz"), gramHelper.getCurToken(), new Token("-"), new Token("-"));
+					TAC tac = new TAC(new Token("jnz"), gramHelper.getCurToken(), Token.TOKEN_NULL, Token.TOKEN_NULL);
 					chainState_temp.trueChain.add(pushTac(tac));
 				}
 				{
-					TAC tac = new TAC(new Token("jump"), new Token("-"), new Token("-"), new Token("-"));
+					TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, Token.TOKEN_NULL);
 					chainState_temp.falseChain.add(pushTac(tac));
 				}
 				gramHelper.getNextToken();
@@ -861,14 +867,14 @@ public class GramAndSemAnalysis
 		}
 		else if(curKindCode == LexAnalysis.keyWord2kindCode.get("true"))
 		{
-			TAC tac = new TAC(new Token("jump"), new Token("-"), new Token("-"), new Token("-"));
+			TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, Token.TOKEN_NULL);
 			chainState_temp.trueChain.add(pushTac(tac));
 			cal_stack.push(gramHelper.getCurToken());
 			gramHelper.getNextToken();
 		}
 		else if(curKindCode == LexAnalysis.keyWord2kindCode.get("false"))
 		{
-			TAC tac = new TAC(new Token("jump"), new Token("-"), new Token("-"), new Token("-"));
+			TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, Token.TOKEN_NULL);
 			chainState_temp.falseChain.add(pushTac(tac));
 			cal_stack.push(gramHelper.getCurToken());
 			gramHelper.getNextToken();
@@ -913,7 +919,7 @@ public class GramAndSemAnalysis
 		{
 			gramHelper.getNextToken();
 			production_sentence();
-			TAC tac = new TAC(new Token("jump"), new Token("-"), new Token("-"), new Token("0"));
+			TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, new Token("0"));
 			chainState_temp.trueChain.add(pushTac(tac));
 			int ind = chainState_temp.falseChain.get(chainState_temp.falseChain.size() - 1);
 			tacList.get(ind).resultToken.content = String.valueOf(addressNum);
@@ -1072,7 +1078,6 @@ public class GramAndSemAnalysis
 	public void parse()
 	{
 		gramHelper.tokenInd = 0;
-		//gramHelper.getNextToken();
 		production_program();
 		
 	}
@@ -1103,12 +1108,12 @@ public class GramAndSemAnalysis
 		for (TAC element : tacList){
 			int ind = 0;
 			TAC nextJump = element;
-			while (/*nextJump.opToken.content != null && */nextJump.opToken.content.equals("jump") )
+			while (nextJump.opToken.content.equals("j") )
 			{
 				ind = Integer.parseInt(nextJump.resultToken.content);
 				nextJump = tacList.get(ind);
 			}
-			if (/*element.opToken.content != null && */element.opToken.content.equals("jump"))
+			if (element.opToken.content.equals("j"))
 			{
 				element.resultToken.content = String.valueOf(ind);
 			}
