@@ -219,13 +219,14 @@ class GramHelper
 	Token getCurToken()
 	{
 		//
-		Token t = tokenList.get(tokenInd);
-		if(t.variableType != null) System.out.println("not null");
-		return t;
+		return tokenList.get(tokenInd);
+		
+		
 	}
 	
 	String getCurTokenContent()
 	{
+		//return getCurToken().symbol.content;
 		return seqNum2ConstantsAndSymbol.get(getCurToken().symbol.seqNum);
 	}
 }
@@ -416,6 +417,7 @@ public class GramAndSemAnalysis
 				
 				TAC tac = new TAC(op, u2, u1, temp_var);
 				pushTac(tac);
+				cal_stack.push(temp_var);
 				
 			}
 		}
@@ -575,7 +577,7 @@ public class GramAndSemAnalysis
 		chainState_temp.codeBegin = addressNum;
 		if(!checkDefine())
 		{
-			error("undefined identifier", gramHelper.getCurToken());
+			error("undefined identifier " + gramHelper.getCurTokenContent(), gramHelper.getCurToken());
 		}
 		
 		if(variableList.get(constantMap.get(gramHelper.getCurTokenContent())).variableType != VariableType.INTEGER)
@@ -596,6 +598,7 @@ public class GramAndSemAnalysis
 		
 		chainState_temp = cacl_exp();
 		
+		//赋值四元式
 		if(cal_stack.size() >= 2)
 		{
 			Token u1 = cal_stack.pop();
