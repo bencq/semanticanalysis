@@ -28,15 +28,23 @@ public class Entrance
 		
 		LexAnalysis lexAnalysis = new LexAnalysis();
 		
-		//分析
-		lexAnalysis.tokenAnalysis(bufferedReader);
+		//词法分析
+		if(!lexAnalysis.tokenAnalysis(bufferedReader))
+		{
+			//词法分析出错
+			//直接返回
+			return;
+		}
+		
+		System.out.println("lex analysis ends successfully");
+		
 		lexAnalysis.printSymbols();
 		
 		
 		//利用词法分析的结果构造语法和语义分析器
 		GramAndSemAnalysis gramAndSemAnalysis = new GramAndSemAnalysis(lexAnalysis.symbolList, lexAnalysis.constantsAndSymbol2SeqNum);
 		
-		//开始分析
+		//开始语法和语义分析，生成四元式
 		gramAndSemAnalysis.parse();
 		
 		//打印四元式

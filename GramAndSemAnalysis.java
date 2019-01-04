@@ -249,7 +249,7 @@ public class GramAndSemAnalysis
 	// 出错处理
 	private void error(String errorMessage, Token token)
 	{
-		System.err.println("error: " + errorMessage + " in line " + token.lineInd + " token position " + token.posInd);
+		System.err.println("error: " + errorMessage + " in line " + (token.lineInd + 1) + " token position " + (token.posInd + 1));
 		System.err.flush();
 		System.exit(0);
 	}
@@ -257,7 +257,7 @@ public class GramAndSemAnalysis
 	// 出错处理
 	private void error(String errorMessage, int lineInd)
 	{
-		System.err.println("error: " + errorMessage + " in line " + lineInd);
+		System.err.println("error: " + errorMessage + " in line " + (lineInd + 1));
 		System.err.flush();
 		System.exit(0);
 	}

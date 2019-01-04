@@ -648,13 +648,34 @@ public class LexAnalysis
 
 				
 
+				
 				if(ch >= transMatrix[0].length)
 				{
 					//非法字符 例如中文字符
-					ch = 0;
+					//手动状态转移
+
+					if(state == State.LEFT_ANNO)
+					{
+						//注释状态下状态不变
+						state = State.LEFT_ANNO;
+					}
+					else if(state == State.RIGHT_ANNO_ASTERISK)
+					{
+						//回到注释状态
+						state = State.LEFT_ANNO;
+					}
+					else
+					{
+						state = State.ERROR;
+					}
+
 				}
-				//状态转移
-				state = transMatrix[state][ch];					
+				else
+				{
+					//自动状态转移
+					state = transMatrix[state][ch];					
+				}
+									
 
 
 				
