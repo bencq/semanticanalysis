@@ -24,13 +24,12 @@ class ChainState
 		falseChain = new ArrayList<>();
 	}
 
-	// 将参数链的
+	// 将参数链的下标全部加到当前成员变量的链中（合并两个链）
 	void appendToTrueChain(ChainState chainState)
 	{
 		trueChain.addAll(chainState.trueChain);
 	}
 
-	//
 	void appendToFalseChain(ChainState chainState)
 	{
 		falseChain.addAll(chainState.falseChain);
@@ -67,8 +66,8 @@ class TAC
 	public String toTAC_String()
 	{
 		StringBuilder stringBuilder = new StringBuilder();
-		String string = stringBuilder.append("(").append(opToken.symbol.content).append(",\t")
-				.append(argToken1.symbol.content).append(",\t").append(argToken2.symbol.content).append(",\t")
+		String string = stringBuilder.append("(").append(opToken.symbol.content).append(", ")
+				.append(argToken1.symbol.content).append(", ").append(argToken2.symbol.content).append(", ")
 				.append(resultToken.symbol.content).append(")").toString();
 		return string;
 	}
@@ -228,13 +227,13 @@ public class GramAndSemAnalysis
 
 	// 成员变量
 
-	// 辅助类
+	// 辅助类，用于取词和词的信息，封装起来不容易出错
 	GramHelper gramHelper;
 
-	// 四元式表
+	// 四元式表，输出的四元式存储在这里
 	ArrayList<TAC> tacList;
 
-	// 变量表, map 快速查找
+	// 变量表,用于存储声明的变量，用 map实现快速查找
 	HashMap<String, Token> variableMap;
 
 	// 地址下标
@@ -243,10 +242,11 @@ public class GramAndSemAnalysis
 	// 临时变量下标
 	int tempVariableInd;
 
-	// 作表达式计算所用的栈
+	// 作表达式计算所用的栈（逆波兰式存储）
 	Stack<Token> calcStack;
-
-	// 出错处理
+	
+	// 出错处理函数的三个重载
+	// 出错处理,输出具体的错误位置，包括行号和词的位置
 	private void error(String errorMessage, Token token)
 	{
 		System.err.println("error: " + errorMessage + " in line " + (token.lineInd + 1) + " token position " + (token.posInd + 1));
@@ -254,7 +254,7 @@ public class GramAndSemAnalysis
 		System.exit(0);
 	}
 
-	// 出错处理
+	// 出错处理,仅有发生错误的行号
 	private void error(String errorMessage, int lineInd)
 	{
 		System.err.println("error: " + errorMessage + " in line " + (lineInd + 1));
@@ -262,7 +262,7 @@ public class GramAndSemAnalysis
 		System.exit(0);
 	}
 
-	// 出错处理
+	// 出错处理，仅输出出错信息，没有位置信息
 	private void error(String errorMessage)
 	{
 		System.err.println("error: " + errorMessage);
@@ -292,7 +292,6 @@ public class GramAndSemAnalysis
 
 		ChainState chainState_temp = new ChainState();
 
-		chainState_temp.exitInd = nextStat;
 		chainState_temp = expression_factor();
 
 		gramHelper.nextToken();
@@ -373,7 +372,7 @@ public class GramAndSemAnalysis
 		}
 		else
 		{
-			error("unexpected token " + gramHelper.getCurTokenContent(), gramHelper.getCurToken());
+			error("unexpected token \"" + gramHelper.getCurTokenContent() + "\"", gramHelper.getCurToken());
 		}
 
 		return chainState_temp;
@@ -391,7 +390,6 @@ public class GramAndSemAnalysis
 	private ChainState expression_arithmetic()
 	{
 		ChainState chainState_temp = new ChainState();
-		chainState_temp.exitInd = nextStat;
 		chainState_temp = expression_term();
 
 		while (gramHelper.getCurToken().symbol.kindCode == LexAnalysis.singleDelimiter2kindCode.get('+')
@@ -625,7 +623,6 @@ public class GramAndSemAnalysis
 	private ChainState statement_while()
 	{
 		ChainState chainState_temp = new ChainState();
-		chainState_temp.exitInd = nextStat;
 		gramHelper.nextToken();
 		chainState_temp = expression_bool();
 
@@ -658,7 +655,6 @@ public class GramAndSemAnalysis
 	private ChainState expression_bool()
 	{
 		ChainState chainState_temp = new ChainState();
-		chainState_temp.exitInd = nextStat;
 		chainState_temp = expression_boolTerm();
 		if(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.keyWord2kindCode.get("or"))
 		{
@@ -699,7 +695,7 @@ public class GramAndSemAnalysis
 	private ChainState expression_boolTerm()
 	{
 		ChainState chainState_temp = new ChainState();
-		chainState_temp.exitInd = nextStat;
+
 
 		chainState_temp = expression_boolFactor();
 
@@ -723,7 +719,6 @@ public class GramAndSemAnalysis
 			{
 				chainState_temp.trueChain.set(0, chainState_temp.trueChain.get(chainState_temp.trueChain.size() - 1));
 
-				// resize(1)
 				int first = chainState_temp.trueChain.get(0);
 				chainState_temp.trueChain.clear();
 				chainState_temp.trueChain.add(first);
@@ -828,15 +823,17 @@ public class GramAndSemAnalysis
 			}
 			else
 			{
-				error("unexpected token " + gramHelper.getCurTokenContent(), gramHelper.getCurToken());
+				error("unexpected token \"" + gramHelper.getCurTokenContent() + "\"", gramHelper.getCurToken());
 			}
 		}
+		//在遇到关键字not时，流程控制的真假出口互换，即需要交换真假链
 		else if(curKindCode == LexAnalysis.keyWord2kindCode.get("not"))
 		{
 			gramHelper.nextToken();
 			chainState_temp = expression_boolFactor();
 			chainState_temp.swapChain();
 		}
+		//在处理<布因子>时，遇到true或false保留字，即可以直接输出无条件跳转四元式：
 		else if(curKindCode == LexAnalysis.keyWord2kindCode.get("true"))
 		{
 			TAC tac = new TAC(Token.TOKEN_J, Token.TOKEN_NULL, Token.TOKEN_NULL, new Token("-"));
@@ -877,13 +874,13 @@ public class GramAndSemAnalysis
 		return type >= 53 && type <= 58;
 	}
 
-	// 获取Token的变量类型
+	// 获取Token的变量类型，从变量表中获取，所以不封装在GramHelper类中
 	private VariableType getCurTokenType()
 	{
 		return variableMap.get(gramHelper.getCurTokenContent()).variableType;
 	}
 
-	// 产生四元式
+	// 产生四元式，并维护地址下标，即地址值+1
 	private int emitTac(TAC tac)
 	{
 		tacList.add(tac);
@@ -894,7 +891,6 @@ public class GramAndSemAnalysis
 	private ChainState statement_if()
 	{
 		ChainState chainState_temp = new ChainState();
-		chainState_temp.exitInd = nextStat;
 		gramHelper.nextToken();
 		chainState_temp = expression_bool();
 		if(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.keyWord2kindCode.get("then"))
@@ -977,10 +973,6 @@ public class GramAndSemAnalysis
 			// <repeat句> 展开
 			chainState_temp = statement_repeat();
 		}
-		else
-		{
-			error("unexpected token \"" + gramHelper.getCurTokenContent() + "\"", gramHelper.getCurToken());
-		}
 
 		return chainState_temp;
 
@@ -991,11 +983,10 @@ public class GramAndSemAnalysis
 	{
 		ChainState chainState_temp = new ChainState();
 		// gramHelper.getNextToken();
-		switch (gramHelper.getCurToken().symbol.kindCode)
+		if(gramHelper.getCurToken().symbol.kindCode == LexAnalysis.keyWord2kindCode.get("program"))
 		{
-		// program 保留字
-		case 23:
-		{
+			// program 保留字
+
 			// 获取当前的token
 			Token token_temp = gramHelper.getCurToken();
 
@@ -1049,13 +1040,9 @@ public class GramAndSemAnalysis
 				emitTac(tac);
 			}
 		}
-			break;
-
-		default:
+		else
 		{
-			error("unexpected token " + gramHelper.getCurTokenContent(), gramHelper.getCurToken());
-		}
-			break;
+			error("unexpected token \"" + gramHelper.getCurTokenContent() + "\"", gramHelper.getCurToken());
 		}
 		return chainState_temp;
 	}
@@ -1082,12 +1069,12 @@ public class GramAndSemAnalysis
 			{
 				// program
 				System.out.println(
-						tacInd + "(" + tac.opToken.symbol.content + ",\t" + tac.argToken1.symbol.content + ",\t-,\t-)");
+						tacInd + "(" + tac.opToken.symbol.content + ", " + tac.argToken1.symbol.content + ", -, -)");
 			}
 			else if(tac.opToken.symbol.kindCode == 46)
 			{
 				// end.
-				System.out.println(tacInd + "(sys,\t-,\t-,\t-)");
+				System.out.println(tacInd + "(sys, -, -, -)");
 			}
 			else
 			{
@@ -1101,7 +1088,7 @@ public class GramAndSemAnalysis
 		}
 	}
 
-	// 将连续的无条件jump语句连串压缩，简化无用跳转
+	// 用于生成所有四元式后，将其中连续的无条件jump语句连串压缩，简化无用跳转
 	private void unconditionalJumpCompress()
 	{
 		for (TAC curJump : tacList)

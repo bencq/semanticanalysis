@@ -36,9 +36,9 @@ public class Entrance
 			return;
 		}
 		
-		System.out.println("lex analysis ends successfully");
+		//System.out.println("lex analysis ends successfully");
 		
-		lexAnalysis.printSymbols();
+		//lexAnalysis.printSymbols();
 		
 		
 		//利用词法分析的结果构造语法和语义分析器

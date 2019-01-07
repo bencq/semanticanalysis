@@ -844,7 +844,7 @@ public class LexAnalysis
 		//System.out.println(constantsAndSymbol2SeqNum.toString());
 	}
 
-	/*
+	
 	public static void main(String[] args) throws IOException
 	{
 
@@ -867,12 +867,20 @@ public class LexAnalysis
 		
 		LexAnalysis lexAnalysis = new LexAnalysis();
 		
-		//分析
-		lexAnalysis.tokenAnalysis(bufferedReader);
-		
+		//词法分析
+		if(!lexAnalysis.tokenAnalysis(bufferedReader))
+		{
+			//词法分析出错
+			//直接返回
+			return;
+		}
 		
 		bufferedReader.close();
+		
+		System.out.println("lex analysis ends successfully");
+		
+		lexAnalysis.printSymbols();
 	}
-	*/
+	
 
 }
